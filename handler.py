@@ -1,10 +1,10 @@
 import requests
 import json
-
+import os
 
 def handler(event, context):
     body = {
-        "message": "Go Serverless v1.0! Your function executed successfully!",
+        "message": "Go Serverless v1.0! Your function executed successfully! "+os.environ["hello"],
         "input": event
     }
 
