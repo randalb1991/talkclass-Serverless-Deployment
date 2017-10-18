@@ -5,7 +5,22 @@ service: talkclass
 provider:
   name: aws
   runtime: python2.7
-
+  environment:
+    #-----------------DynamoDB Environment--------
+    DYNAMO_USER_TABLE: Users3
+    DYNAMO_CLASSROOMS_TABLE: Classrooms3
+    DYNAMO_EVENTS_TABLE: Eventos3
+    DYNAMO_MULTIMEDIA_TABLE: Multimedia3
+    DYNAMO_USERSLOGGED_TABLE: Users_logged3
+    #-----------------S3 Environment--------------
+    BUCKET_NAME: ${self:service}-tcbucket32
+    #-----------------Auth0 Environment--------
+    AUTH0_DB_PARENT: Username-Password-Connection2
+    AUTH0_CLIENT_ID_PARENT: mMzOE026lgtsO06FzhIWjW3NvbQ0EAL8H
+    AUTH0_DB_TEACHER: Username-Password-Authentication
+    AUTH0_CLIENT_ID_TEACHER: 100Omp2yeIhGP3wOnqMNzgL5y18RUc5p80
+    AUTH0_URL_SESSION_0AUTH: https://talkclass.auth0.com/oauth/ro
+    AUTH0_URL_SESSION_DELEGATION: https://talkclass.auth0.com/delegation
 plugins:
   - serverless-python-requirements
 
@@ -15,6 +30,127 @@ custom:
 
 functions:
   hello:
-    handler: handler.handler
+    handler: login.handler
     environment:
-      hello: 'Hola Randall'
+      #----AUTH0 URL-------
+      urlSessionOauth: ${self:provider.environment.AUTH0_URL_SESSION_0AUTH}
+      urlSessionDelegation: ${self:provider.environment.AUTH0_URL_SESSION_DELEGATION}
+      #---AUTH0 DB---------
+      clientIdTeacher: ${self:provider.environment.AUTH0_CLIENT_ID_TEACHER}
+      connectionTeacher: ${self:provider.environment.AUTH0_DB_TEACHER}
+      clientIdParent: ${self:provider.environment.AUTH0_CLIENT_ID_PARENT}
+      connectionParent: ${self:provider.environment.AUTH0_DB_PARENT}
+      #---Table UserLogged--
+      tableUsersLogged: ${self:provider.environment.DYNAMO_USER_TABLE}
+resources:
+  Resources:
+  #------------------------S3 Resources ------------------------------
+    originalbucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:provider.environment.BUCKET_NAME}
+    resizedbucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:provider.environment.BUCKET_NAME}-resized
+  #------------------------ Resources ------------------------------
+    UserTable:
+      Type: 'AWS::DynamoDB::Table'
+      DeletionPolicy: Delete
+      Properties:
+        AttributeDefinitions:
+          -
+            AttributeName: Username
+            AttributeType: S
+
+        KeySchema:
+          -
+            AttributeName: Username
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        TableName: ${self:provider.environment.DYNAMO_USER_TABLE}
+
+    UsersLoggedTable:
+      Type: 'AWS::DynamoDB::Table'
+      DeletionPolicy: Delete
+      Properties:
+        AttributeDefinitions:
+          -
+            AttributeName: Username
+            AttributeType: S
+
+        KeySchema:
+          -
+            AttributeName: Username
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        TableName: ${self:provider.environment.DYNAMO_USERSLOGGED_TABLE}
+
+    ClassroomsTable:
+      Type: 'AWS::DynamoDB::Table'
+      DeletionPolicy: Delete
+      Properties:
+        AttributeDefinitions:
+          -
+            AttributeName: Class
+            AttributeType: S
+          -
+            AttributeName: Level
+            AttributeType: S
+
+        KeySchema:
+          -
+            AttributeName: Class
+            KeyType: HASH
+          -
+            AttributeName: Level
+            KeyType: RANGE
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        TableName: ${self:provider.environment.DYNAMO_CLASSROOMS_TABLE}
+
+    MultimediaTable:
+      Type: 'AWS::DynamoDB::Table'
+      DeletionPolicy: Delete
+      Properties:
+        AttributeDefinitions:
+          -
+            AttributeName: Picture Key
+            AttributeType: S
+
+        KeySchema:
+          -
+            AttributeName: Picture Key
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        TableName: ${self:provider.environment.DYNAMO_MULTIMEDIA_TABLE}
+    EventsTable:
+      Type: 'AWS::DynamoDB::Table'
+      DeletionPolicy: Delete
+      Properties:
+        AttributeDefinitions:
+          -
+            AttributeName: Title
+            AttributeType: S
+          -
+            AttributeName: Date
+            AttributeType: S
+
+        KeySchema:
+          -
+            AttributeName: Title
+            KeyType: HASH
+          -
+            AttributeName: Date
+            KeyType: RANGE
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        TableName: ${self:provider.environment.DYNAMO_EVENTS_TABLE}
