@@ -127,13 +127,25 @@ def getDate():
 
 def handler(event, context):
     if 'role' not in event:
-        return "Role not given. should be parent or teacher"
+        response4 = {
+            "statusCode": 400,
+            "body": "Role not given. should be parent or teacher"
+            }
+        return response4
 
     if 'username' not in event:
-        return 'Username not given'
+        response4 = {
+            "statusCode": 400,
+            "body": "Username not given"
+            }
+        return response4
 
     if 'password' not in event:
-        return 'Password not given'
+        response4 = {
+            "statusCode": 400,
+            "body": "Password not given"
+            }
+        return response4
 
     if event["role"] == "teacher":
         clientid = os.environ['clientIdTeacher']

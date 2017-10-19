@@ -16,9 +16,9 @@ provider:
     BUCKET_NAME: ${self:service}-tcbucket32
     #-----------------Auth0 Environment--------
     AUTH0_DB_PARENT: Username-Password-Connection2
-    AUTH0_CLIENT_ID_PARENT: mMzO0E026lgtsO6FzhIWjW3NvbQ0EAL8H
+    AUTH0_CLIENT_ID_PARENT: mMzOE026lgtsO6FzhIWjW3NvbQ0EAL8H
     AUTH0_DB_TEACHER: Username-Password-Authentication
-    AUTH0_CLIENT_ID_TEACHER: 1O0mp2yeIhGP3wOnqMNzgL5y18RUc5p80
+    AUTH0_CLIENT_ID_TEACHER: 1Omp2yeIhGP3wOnqMNzgL5y18RUc5p80
     AUTH0_URL_SESSION_0AUTH: https://talkclass.auth0.com/oauth/ro
     AUTH0_URL_SESSION_DELEGATION: https://talkclass.auth0.com/delegation
   #---------------IAM Policy------------------
@@ -41,7 +41,7 @@ custom:
 
 
 functions:
-  hello:
+  login:
     handler: login.handler
     environment:
       #----AUTH0 URL-------
