@@ -7,26 +7,38 @@ provider:
   runtime: python2.7
   environment:
     #-----------------DynamoDB Environment--------
-    DYNAMO_USER_TABLE: Users3
-    DYNAMO_CLASSROOMS_TABLE: Classrooms3
-    DYNAMO_EVENTS_TABLE: Eventos3
-    DYNAMO_MULTIMEDIA_TABLE: Multimedia3
-    DYNAMO_USERSLOGGED_TABLE: Users_logged3
+    DYNAMO_USER_TABLE: Users
+    DYNAMO_CLASSROOMS_TABLE: Classrooms
+    DYNAMO_EVENTS_TABLE: Eventos
+    DYNAMO_MULTIMEDIA_TABLE: Multimedia
+    DYNAMO_USERSLOGGED_TABLE: Users_logged
     #-----------------S3 Environment--------------
     BUCKET_NAME: ${self:service}-tcbucket32
     #-----------------Auth0 Environment--------
     AUTH0_DB_PARENT: Username-Password-Connection2
-    AUTH0_CLIENT_ID_PARENT: mMzOE026lgtsO06FzhIWjW3NvbQ0EAL8H
+    AUTH0_CLIENT_ID_PARENT: mMzO0E026lgtsO6FzhIWjW3NvbQ0EAL8H
     AUTH0_DB_TEACHER: Username-Password-Authentication
-    AUTH0_CLIENT_ID_TEACHER: 100Omp2yeIhGP3wOnqMNzgL5y18RUc5p80
+    AUTH0_CLIENT_ID_TEACHER: 1O0mp2yeIhGP3wOnqMNzgL5y18RUc5p80
     AUTH0_URL_SESSION_0AUTH: https://talkclass.auth0.com/oauth/ro
     AUTH0_URL_SESSION_DELEGATION: https://talkclass.auth0.com/delegation
+  #---------------IAM Policy------------------
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource: "*"
 plugins:
   - serverless-python-requirements
 
 custom:
   pythonRequirements:
     dockerizePip: true
+
 
 functions:
   hello:
@@ -41,7 +53,12 @@ functions:
       clientIdParent: ${self:provider.environment.AUTH0_CLIENT_ID_PARENT}
       connectionParent: ${self:provider.environment.AUTH0_DB_PARENT}
       #---Table UserLogged--
-      tableUsersLogged: ${self:provider.environment.DYNAMO_USER_TABLE}
+      tableUsersLogged: ${self:provider.environment.DYNAMO_USERSLOGGED_TABLE}
+
+  hello2:
+    handler: login.handler2
+  hello3:
+    handler: test.handler2
 resources:
   Resources:
   #------------------------S3 Resources ------------------------------

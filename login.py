@@ -3,7 +3,7 @@ import json
 import datetime
 import os
 import hashlib
-
+import boto3
 def get_token_auth0(user, password, clientid, db):
     headers = {
         "Content-Type": "application/json"
@@ -18,7 +18,7 @@ def get_token_auth0(user, password, clientid, db):
            "\"connection\":" + " \"" + db + "\"," +\
            "\"grant_type\": \"password\"," + "\"scope\": \"openid\"," +\
            "\"device\":      \" \"" + "}"
-
+    #print body
     response = requests.post(url_session, data=body, headers=headers)
     return response
 
@@ -49,29 +49,44 @@ def login(username, password, clientid, db):
     # Petition AUTH0
     response = get_token_auth0(user=username, password=password, clientid=clientid, db=db)
     if response.status_code is not 200:
-        return response.status_code, response.reason
+        response = {
+            "statusCode": response.status_code,
+            "body": response.text
+        }
+        return response
+
     j = json.loads(response.text)
 
     # Delegation
 
     response2 = delegation(j["id_token"], clientid)
+    #print(response2.text)
+
     if response2.status_code is not 200:
-        return response2.status_code, response2.reason
+        response = {
+            "statusCode": response2.status_code,
+            "body": response2.text
+        }
+        return response
     j2 = json.loads(response2.text)
     auth0_token_id = j['id_token']
-    print 'Auth0 id_token: '+ auth0_token_id
+    #print 'Auth0 id_token: '+ auth0_token_id
     aws_secret_key = j2['Credentials']['SecretAccessKey']
-    print 'Secret key: '+ aws_secret_key
+    #print 'Secret key: '+ aws_secret_key
     aws_access_key = j2['Credentials']['AccessKeyId']
-    print 'Access key: '+ aws_access_key
+    #print 'Access key: '+ aws_access_key
     session_token_aws = j2['Credentials']['SessionToken']
-    print 'Session token: '+ session_token_aws
+    #print 'Session token: '+ session_token_aws
     expiration = j2['Credentials']['Expiration']
-    print 'Expirtaion: '+ expiration
+    #print 'Expirtaion: '+ expiration
     saveUserLogged(username=username, id_token_auth0=auth0_token_id, secret_key=aws_secret_key, access_key=aws_access_key,
                    session_token=session_token_aws, expiration=expiration)
     credentials = {'access_key': aws_access_key, 'secret_key': aws_secret_key, 'session_token':  session_token_aws}
-    return credentials
+    response3 = {
+            "statusCode": 200,
+            "body": credentials
+    }
+    return response3
 
 def saveUserLogged(username, id_token_auth0, secret_key, access_key,session_token, expiration):
     """
@@ -127,13 +142,12 @@ def handler(event, context):
     if event["role"] == "parent":
         clientid = os.environ['clientIdParent']
         db = os.environ['connectionParent']
+        #print("Role given: "+event["role"])
+        #print("Client ID: "+clientid)
+        #print("DB: "+db)
         return login(username=event["username"], password=event["password"], clientid=clientid, db=db)
 
     return "Role not defined"
-"""
-event = {
-  "username": "rdbarrientos",
-  "password": "usuario1",
-  "role": "parent"
-}
-"""
+
+def handler2(event, context):
+    return "evento 2"
