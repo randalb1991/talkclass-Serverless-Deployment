@@ -21,6 +21,7 @@ provider:
     AUTH0_CLIENT_ID_TEACHER: 1Omp2yeIhGP3wOnqMNzgL5y18RUc5p80
     AUTH0_URL_SESSION_0AUTH: https://talkclass.auth0.com/oauth/ro
     AUTH0_URL_SESSION_DELEGATION: https://talkclass.auth0.com/delegation
+    AUTH0_URL_SIGNUP: https://talkclass.auth0.com/dbconnections/signup
   #---------------IAM Policy------------------
   iamRoleStatements:
     - Effect: Allow
@@ -31,6 +32,15 @@ provider:
         - dynamodb:PutItem
         - dynamodb:UpdateItem
         - dynamodb:DeleteItem
+
+      Resource: "*"
+    - Effect: "Allow"
+      Action:
+        - "s3:PutObject"
+      Resource: "*"
+    - Effect: "Allow"
+      Action:
+        - "sns:*"
       Resource: "*"
 plugins:
   - serverless-python-requirements
@@ -47,18 +57,44 @@ functions:
       #----AUTH0 URL-------
       urlSessionOauth: ${self:provider.environment.AUTH0_URL_SESSION_0AUTH}
       urlSessionDelegation: ${self:provider.environment.AUTH0_URL_SESSION_DELEGATION}
+      urlSignUp: ${self:provider.environment.AUTH0_URL_SIGNUP}
       #---AUTH0 DB---------
       clientIdTeacher: ${self:provider.environment.AUTH0_CLIENT_ID_TEACHER}
       connectionTeacher: ${self:provider.environment.AUTH0_DB_TEACHER}
       clientIdParent: ${self:provider.environment.AUTH0_CLIENT_ID_PARENT}
       connectionParent: ${self:provider.environment.AUTH0_DB_PARENT}
-      #---Table UserLogged--
+      #---Dynamo Tables--
       tableUsersLogged: ${self:provider.environment.DYNAMO_USERSLOGGED_TABLE}
 
-  hello2:
-    handler: login.handler2
-  hello3:
-    handler: test.handler2
+  signup:
+    handler: signup.handler
+    environment:
+      #----AUTH0 URL-------
+      urlSessionOauth: ${self:provider.environment.AUTH0_URL_SESSION_0AUTH}
+      urlSessionDelegation: ${self:provider.environment.AUTH0_URL_SESSION_DELEGATION}
+      urlSignUp: ${self:provider.environment.AUTH0_URL_SIGNUP}
+
+      #---AUTH0 DB---------
+      clientIdTeacher: ${self:provider.environment.AUTH0_CLIENT_ID_TEACHER}
+      connectionTeacher: ${self:provider.environment.AUTH0_DB_TEACHER}
+      clientIdParent: ${self:provider.environment.AUTH0_CLIENT_ID_PARENT}
+      connectionParent: ${self:provider.environment.AUTH0_DB_PARENT}
+      #---Dynamo Tables--
+      tableClassroom: ${self:provider.environment.DYNAMO_CLASSROOMS_TABLE}
+      tableUsers: ${self:provider.environment.DYNAMO_USER_TABLE}
+      #----S3 Buckets------
+      originalBucket: ${self:provider.environment.BUCKET_NAME}
+      resizedBucket: ${self:provider.environment.BUCKET_NAME}-resized
+
+  createclassroom:
+    handler: CreateClassroom.handler
+    environment:
+      #---Dynamo Tables--
+      tableClassroom: ${self:provider.environment.DYNAMO_CLASSROOMS_TABLE}
+      #----S3 Buckets------
+      originalBucket: ${self:provider.environment.BUCKET_NAME}
+      resizedBucket: ${self:provider.environment.BUCKET_NAME}-resized
+
 resources:
   Resources:
   #------------------------S3 Resources ------------------------------
