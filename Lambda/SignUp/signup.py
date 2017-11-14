@@ -4,68 +4,74 @@ import requests
 import datetime
 import os
 
+def return_error(statusCode, message):
+    response = {
+        "statusCode": statusCode,
+        "body": message
+    }
+    return response
 
 def handler(event, context):
 
     if 'email' in event:
         if not valid_email(event["email"]):
-            return "Invalid email. The mail must be of type myaccount@example.com"
+            return return_error(400, "Invalid email. The mail must be of type myaccount@example.com")
     else:
-        return "Email field is empty"
+        return return_error(400, "Email field is empty")
 
     if 'birthday' in event:
         if not valid_date(event["birthday"]):
-            return "Birthday is not valid date. The formart must be of type dd/mm/yyyy"
+            return return_error(400, "Birthday is not valid date. The formart must be of type dd/mm/yyyy")
     else:
-        return "Birthday field is empty"
+        return return_error(400, "Birthday field is empty")
 
     if 'role' in event:
         if not valid_role(event["role"]):
-            return "Invalid role. Only 'teacher' and 'parent' roles are accepted"
+            return return_error(400, "Invalid role. Only 'teacher' and 'parent' roles are accepted")
     else:
-        return "Role field is empty"
+        return return_error(400, "Role field is empty")
 
     if 'phone' in event:
         if not valid_phone(event["phone"]):
-            return "Invalid phone. This field only accept numbers with a minimum size of 9 "
+            return return_error(400, "Invalid phone. This field only accept numbers with a minimum size of 9 ")
     else:
-        return "Phone field is empty"
+        return return_error(400, "Phone field is empty")
 
     if not 'first_name' in event:
-        return "First name field is empty"
+        return return_error(400, "First name field is empty")
 
     if not 'username' in event:
-        return "Username field is empty"
+        return return_error(400, "Username field is empty")
 
     if not 'password' in event:
-        return "Password field is empty"
+        return return_error(400, "Password field is empty")
 
     if 'last_name' in event:
-        if len(event["last_name"]) < 3:
-            return "Last name field is short"
+        if len(event["last_name"]) < 2:
+            return return_error(400, "Last name field is short")
     else:
-        return 'Last name is empty'
+        return return_error(400, 'Last name is empty')
 
     if not 'address' in event:
-        return "Address field is empty"
+        return return_error(400, "Address field is empty")
 
     if 'postal_code' in event:
         if not valid_postal_code(event["postal_code"]):
-            return "Invalid code postal or empty. Should be only number with a length between 5 and 7 digits "
+            return return_error(400, "Invalid code postal or empty. Should be only number with a length between 5 and 7 digits ")
     else:
-        return "Postal code field is empty"
+         return return_error(400, "Postal code field is empty")
 
     if exist_user(event["username"]):
-        return "Username is already exists"
+        return return_error(400, "Username is already exists")
 
     if event["role"] == "parent":
         try:
             classs = event["classroom"].split(" ")[0]
             level = event["classroom"].split(" ")[1]
         except IndexError:
-            return "Invalid format of class or empty. The classroom should be similar to \"1A Infantil\"  "
+            return return_error(400, "Invalid format of class or empty. The classroom should be similar to \"1A Infantil\"  ")
         if not exists_classroom(classs=classs, level=level):
-            return "The classroom already don't exists on the data base"
+            return return_error(400, "The classroom doesn't exists on the data base")
         return signup_parent(event=event)
 
 
@@ -75,19 +81,19 @@ def handler(event, context):
                 classs = event["tutor_class"].split(" ")[0]
                 level = event["tutor_class"].split(" ")[1]
             except IndexError:
-                return "Invalid format of class. The classroom should be similar to \"1A Infantil\"  "
+                return return_error(400, "Invalid format of class. The classroom should be similar to \"1A Infantil\"  ")
 
             if not exists_classroom(classs=classs, level=level):
-                return "The classroom already don't exists on the data base"
+                return return_error(400,  "The classroom doesn't exists on the data base ")
 
             if has_tutor(classs=classs, level=level):
-                return "This class already has a tutor"
+                return return_error(400,  "This class already has a tutor")
         return signup_teacher(event=event)
 
 
 def signup_parent(event):
-    client_id = 'mMzOE026lgtsO6FzhIWjW3NvbQ0EAL8H'#os.environ['clientIdParent']
-    connection = 'Username-Password-Connection2'#os.environ['connectionParent']
+    client_id = os.environ['clientIdParent']
+    connection = os.environ['connectionParent']
     #Creatin the user on auth0
     response = signup_auth0(client_id=client_id, username=event["username"], email=event["email"],
                             password=event["password"], connection=connection)
@@ -501,12 +507,3 @@ def create_folder_in_bucket(role, username):
             Key=path
             )
         return response, path
-"""
-event = {"username": "asanchez2", "address": "Avenida de america", "birthday": "5/12/1980", "email": "rd.barri@drjc.es",
-                "first_name": "Alberto", "last_name":"Sanchez", "phone": "34654654654", "postal_code": "28028",
-                "role": "teacher", "password":"usuario1"}
-
-print(handler(event, None))
-
-Hi Dear host, I am going to visit Shanghai with my sister from 31 oct to 2-Nov. Other 2 chineses friend are going to host with us. If you need any information from my side, please, let me know. Regards.
-"""

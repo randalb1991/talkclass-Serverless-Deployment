@@ -95,6 +95,16 @@ functions:
       originalBucket: ${self:provider.environment.BUCKET_NAME}
       resizedBucket: ${self:provider.environment.BUCKET_NAME}-resized
 
+  createevent:
+    handler: create_event.handler
+    environment:
+      #---Dynamo Tables--
+      tableClassroom: ${self:provider.environment.DYNAMO_CLASSROOMS_TABLE}
+      tableEvents: ${self:provider.environment.DYNAMO_EVENTS_TABLE}
+      #----S3 Buckets------
+      originalBucket: ${self:provider.environment.BUCKET_NAME}
+      resizedBucket: ${self:provider.environment.BUCKET_NAME}-resized
+
 resources:
   Resources:
   #------------------------S3 Resources ------------------------------

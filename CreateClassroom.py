@@ -5,20 +5,20 @@ def handler(event, context):
     if 'class' in event:
         classs = event["class"]
     else:
-        return_error(400, "Class not inserted")
+        return return_error(400, "Class not inserted")
 
     if 'level' in event:
         level = event["level"]
     else:
-        return_error(400, "Level not inserted")
+        return return_error(400, "Level not inserted")
 
     is_valid_class, message = is_valid_classroom(event["class"], event["level"])
 
     if not is_valid_class:
-        return_error(400, message)
+        return return_error(400, message)
 
     if exist_classroom(classs, level):
-        return_error(409, "The class already exist")
+        return return_error(409, "The class already exist")
 
     return create_classroom(classs, level)
 
@@ -27,12 +27,12 @@ def handler(event, context):
 def create_classroom(classs, level):
     response, path = create_folder_in_bucket(classs, level)
     if response['ResponseMetadata']['HTTPStatusCode'] is not 200:
-        return_error(response['ResponseMetadata']['HTTPStatusCode'], "Error creating the folder in s3 \n"+response['ResponseMetadata'])
+        return return_error(response['ResponseMetadata']['HTTPStatusCode'], "Error creating the folder in s3 \n"+response['ResponseMetadata'])
     response = create_topic(classs, level)
 
     if response['ResponseMetadata']['HTTPStatusCode'] is not 200:
         rollback(s3=True, path=path, sns=False)
-        return_error(response['ResponseMetadata']['HTTPStatusCode'], "Error creating the topic. Rollback executed\n"+response['ResponseMetadata'])
+        return return_error(response['ResponseMetadata']['HTTPStatusCode'], "Error creating the topic. Rollback executed\n"+response['ResponseMetadata'])
 
     arn_topic = response['TopicArn']
 
@@ -40,7 +40,7 @@ def create_classroom(classs, level):
 
     if response['ResponseMetadata']['HTTPStatusCode'] is not 200:
         rollback(s3=True, path=path, sns=True, topic=arn_topic)
-        return_error(response['ResponseMetadata']['HTTPStatusCode'], "Error Inserting in Dynamo DB. Rollback executed \n"+response['ResponseMetadata'])
+        return return_error(response['ResponseMetadata']['HTTPStatusCode'], "Error Inserting in Dynamo DB. Rollback executed \n"+response['ResponseMetadata'])
 
     return "Classroom created correctly with a foler in "+path+" and SNS Topic "+arn_topic
 

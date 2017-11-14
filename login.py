@@ -4,6 +4,14 @@ import datetime
 import os
 import hashlib
 import boto3
+
+def return_error(statusCode, message):
+    response = {
+        "statusCode": statusCode,
+        "body": message
+    }
+    return response
+
 def get_token_auth0(user, password, clientid, db):
     headers = {
         "Content-Type": "application/json"
@@ -49,11 +57,7 @@ def login(username, password, clientid, db):
     # Petition AUTH0
     response = get_token_auth0(user=username, password=password, clientid=clientid, db=db)
     if response.status_code is not 200:
-        response = {
-            "statusCode": response.status_code,
-            "body": response.text
-        }
-        return response
+        return return_error(response.status_code, response.text)
 
     j = json.loads(response.text)
 
@@ -63,11 +67,7 @@ def login(username, password, clientid, db):
     #print(response2.text)
 
     if response2.status_code is not 200:
-        response = {
-            "statusCode": response2.status_code,
-            "body": response2.text
-        }
-        return response
+        return return_error(response2.status_code, response2.text)
     j2 = json.loads(response2.text)
     auth0_token_id = j['id_token']
     #print 'Auth0 id_token: '+ auth0_token_id
