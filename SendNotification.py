@@ -2,7 +2,7 @@ __author__ = 'Randal'
 import boto3
 import os
 
-def lambda_handler(event, context):
+def handler(event, context):
     for record in event['Records']:
         if record['eventName'] == 'INSERT':
             insert_event(record)

@@ -22,6 +22,8 @@ provider:
     AUTH0_URL_SESSION_0AUTH: https://talkclass.auth0.com/oauth/ro
     AUTH0_URL_SESSION_DELEGATION: https://talkclass.auth0.com/delegation
     AUTH0_URL_SIGNUP: https://talkclass.auth0.com/dbconnections/signup
+    #----------------AWS Rekognition-----------#
+    REK_MAX_LABEL: 6
   #---------------IAM Policy------------------
   iamRoleStatements:
     - Effect: Allow
@@ -104,6 +106,29 @@ functions:
       #----S3 Buckets------
       originalBucket: ${self:provider.environment.BUCKET_NAME}
       resizedBucket: ${self:provider.environment.BUCKET_NAME}-resized
+
+  uploadpicture:
+    handler: uploadPicture.handler
+    environment:
+      #---Dynamo Tables--
+      tableUsersLogged: ${self:provider.environment.DYNAMO_USERSLOGGED_TABLE}
+      tableClassroom: ${self:provider.environment.DYNAMO_CLASSROOMS_TABLE}
+      tableUsers: ${self:provider.environment.DYNAMO_USER_TABLE}
+      tableEvents: ${self:provider.environment.DYNAMO_EVENTS_TABLE}
+      tableMultimedia: ${self:provider.environment.DYNAMO_MULTIMEDIA_TABLE}
+      #----S3 Buckets------
+      originalBucket: ${self:provider.environment.BUCKET_NAME}
+      resizedBucket: ${self:provider.environment.BUCKET_NAME}-resized
+      #-----AWS Rekognition----#
+      maxLabel: ${self:provider.environment.REK_MAX_LABEL}
+  reduce:
+    handler: reduce.handler
+  sendnotification:
+    handler: SendNotification.handler
+    environment:
+      #---Dynamo Tables--
+      tableClassroom: ${self:provider.environment.DYNAMO_CLASSROOMS_TABLE}
+
 
 resources:
   Resources:
