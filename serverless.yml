@@ -13,7 +13,7 @@ provider:
     DYNAMO_MULTIMEDIA_TABLE: Multimedia
     DYNAMO_USERSLOGGED_TABLE: Users_logged
     #-----------------S3 Environment--------------
-    BUCKET_NAME: ${self:service}-tcbucket32
+    BUCKET_NAME: ${self:service}-tcbucket3332
     #-----------------Auth0 Environment--------
     AUTH0_DB_PARENT: Username-Password-Connection2
     AUTH0_CLIENT_ID_PARENT: mMzOE026lgtsO6FzhIWjW3NvbQ0EAL8H
@@ -24,6 +24,8 @@ provider:
     AUTH0_URL_SIGNUP: https://talkclass.auth0.com/dbconnections/signup
     #----------------AWS Rekognition-----------#
     REK_MAX_LABEL: 6
+    #---------------API GATEWAY----------------#
+    PATH_BASE: talkclass
   #---------------IAM Policy------------------
   iamRoleStatements:
     - Effect: Allow
@@ -36,13 +38,20 @@ provider:
         - dynamodb:DeleteItem
 
       Resource: "*"
+
     - Effect: "Allow"
       Action:
-        - "s3:PutObject"
+        - "s3:*"
       Resource: "*"
+
     - Effect: "Allow"
       Action:
         - "sns:*"
+      Resource: "*"
+
+    - Effect: "Allow"
+      Action:
+        - "rekognition:*"
       Resource: "*"
 plugins:
   - serverless-python-requirements
@@ -87,7 +96,11 @@ functions:
       #----S3 Buckets------
       originalBucket: ${self:provider.environment.BUCKET_NAME}
       resizedBucket: ${self:provider.environment.BUCKET_NAME}-resized
-
+    events:
+      - http:
+          path: ${self:provider.environment.PATH_BASE}/signup
+          method: post
+          cors: true
   createclassroom:
     handler: CreateClassroom.handler
     environment:
@@ -96,6 +109,11 @@ functions:
       #----S3 Buckets------
       originalBucket: ${self:provider.environment.BUCKET_NAME}
       resizedBucket: ${self:provider.environment.BUCKET_NAME}-resized
+    events:
+      - http:
+          path: ${self:provider.environment.PATH_BASE}/classrooms
+          method: post
+          cors: true
 
   createevent:
     handler: create_event.handler
@@ -123,6 +141,10 @@ functions:
       maxLabel: ${self:provider.environment.REK_MAX_LABEL}
   reduce:
     handler: reduce.handler
+#    events:
+#      - s3:
+#          bucket: originalbucket
+#          event: s3:ObjectCreated:*
   sendnotification:
     handler: SendNotification.handler
     environment:
@@ -133,11 +155,11 @@ functions:
 resources:
   Resources:
   #------------------------S3 Resources ------------------------------
-    originalbucket:
+    S3BucketOriginalbucket:
       Type: AWS::S3::Bucket
       Properties:
         BucketName: ${self:provider.environment.BUCKET_NAME}
-    resizedbucket:
+    S3BucketResizedbucket:
       Type: AWS::S3::Bucket
       Properties:
         BucketName: ${self:provider.environment.BUCKET_NAME}-resized

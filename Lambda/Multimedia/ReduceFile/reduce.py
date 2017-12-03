@@ -24,13 +24,13 @@ def handler(event, context):
             upload_path = '/tmp/resized-{}'.format(file_name)
             s3_client.download_file(bucket, total_path_to_key, download_path)
             resize_image(download_path, upload_path)
-            s3_client.upload_file(upload_path, '{}resized'.format(bucket), total_path_to_key)
+            s3_client.upload_file(upload_path, '{}-resized'.format(bucket), total_path_to_key)
         else:
             download_path = '/tmp/{}{}'.format(uuid.uuid4(), total_path_to_key)
             upload_path = '/tmp/resized-{}'.format(total_path_to_key)
             s3_client.download_file(bucket, total_path_to_key, download_path)
             resize_image(download_path, upload_path)
-            s3_client.upload_file(upload_path, '{}resized'.format(bucket), total_path_to_key)
+            s3_client.upload_file(upload_path, '{}-resized'.format(bucket), total_path_to_key)
 
 """
 bucket = "talkclasstfg-bucket"

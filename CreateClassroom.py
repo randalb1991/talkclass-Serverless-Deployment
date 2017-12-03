@@ -2,6 +2,7 @@ __author__ = 'Randal'
 import boto3
 import os
 def handler(event, context):
+    print("Evento: "+str(event))
     if 'class' in event:
         classs = event["class"]
     else:
@@ -15,9 +16,11 @@ def handler(event, context):
     is_valid_class, message = is_valid_classroom(event["class"], event["level"])
 
     if not is_valid_class:
+        print ("Class not valid format")
         return return_error(400, message)
 
     if exist_classroom(classs, level):
+        print("The class already exist")
         return return_error(409, "The class already exist")
 
     return create_classroom(classs, level)
@@ -27,10 +30,12 @@ def handler(event, context):
 def create_classroom(classs, level):
     response, path = create_folder_in_bucket(classs, level)
     if response['ResponseMetadata']['HTTPStatusCode'] is not 200:
+        print("Bucket creation: Failed")
         return return_error(response['ResponseMetadata']['HTTPStatusCode'], "Error creating the folder in s3 \n"+response['ResponseMetadata'])
     response = create_topic(classs, level)
 
     if response['ResponseMetadata']['HTTPStatusCode'] is not 200:
+        print("Topic creation: Failed")
         rollback(s3=True, path=path, sns=False)
         return return_error(response['ResponseMetadata']['HTTPStatusCode'], "Error creating the topic. Rollback executed\n"+response['ResponseMetadata'])
 
@@ -39,6 +44,7 @@ def create_classroom(classs, level):
     response = insert_in_dynamodb(classs, level, path, arn_topic)
 
     if response['ResponseMetadata']['HTTPStatusCode'] is not 200:
+        print("DynamoDB creation: Failed")
         rollback(s3=True, path=path, sns=True, topic=arn_topic)
         return return_error(response['ResponseMetadata']['HTTPStatusCode'], "Error Inserting in Dynamo DB. Rollback executed \n"+response['ResponseMetadata'])
 

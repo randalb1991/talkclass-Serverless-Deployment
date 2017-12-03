@@ -2,6 +2,7 @@ __author__ = 'Randal'
 import boto3
 import os
 
+
 def handler(event, context):
     for record in event['Records']:
         if record['eventName'] == 'INSERT':

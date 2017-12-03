@@ -5,6 +5,7 @@ import os
 import hashlib
 import boto3
 
+
 def return_error(statusCode, message):
     response = {
         "statusCode": statusCode,
