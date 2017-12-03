@@ -1,8 +1,10 @@
+# VIA API
+
 __author__ = 'Randal'
 import boto3, os
 import datetime
 import hashlib
-
+import json
 def return_error(statusCode, message):
     response = {
         "statusCode": statusCode,
@@ -13,6 +15,12 @@ def return_error(statusCode, message):
 def handler(event, context):
     tags = []
     #Values checker
+    print("Event Initial: "+str(event))
+    if 'body' in event:
+        # Si el evento se llama desde apigateway(Lambda Proxy), el evento original vendra en el body
+        # Y nos los quedaremos. Si no, usamos el evento original ya que traera todos los datos
+        event = json.loads(event['body'])
+    print("Event took(Body): "+str(event))
 
     if 'picture_key'not in event:
         return return_error(400, "Picture key not given")
@@ -23,6 +31,11 @@ def handler(event, context):
     if 'session_token' not in event:
         return return_error(400, "Session Token not given")
 
+    if 'event' not in event:
+        return return_error(400, "Event not given")
+
+    if 'event_date' not in event:
+        return return_error(400, "Event_date not given")
     # Values checker
 
     # Values exists?
@@ -30,26 +43,23 @@ def handler(event, context):
     if event['username'] is False:
         return return_error(401, "Invalid aws session token ")
 
-    if 'event'in event:
-        if 'event_date' in event:
-            if not exist_event(title=event['event'], event_date=event['event_date']):
-                #rollback(event['picture_key'])
-                return return_error(404,  "Event don't exists")
-            else:
-                response = insert_file_event_DynamoDB(event)
-        else:
-            return return_error(400, "Given event but, not given event date")
+    if not exist_event(title=event['event'], event_date=event['event_date']):
+        #rollback(event['picture_key'])
+        return return_error(404,  "Event don't exists")
     else:
-        response = insert_file_DynamoDB(event)
+        response = insert_file_event_DynamoDB(event)
 
     if response['ResponseMetadata']['HTTPStatusCode'] is not 200:
         rollback(event['picture_key'])
         return return_error(500, "Error inserting the file. File deleted from s3")
     else:
-        if 'event' in event:
-            classrooms = get_classrooms_of_the_event(event['event'], event['event_date'])
-            send_notification(classrooms, event)
-        return  "File uploaded and saved correctly in dynamoDB"
+        classrooms = get_classrooms_of_the_event(event['event'], event['event_date'])
+        send_notification(classrooms, event)
+        return {
+            "statusCode": 200,
+            "body": "File uploaded and saved correctly in dynamoDB"
+            }
+        #return "File uploaded and saved correctly in dynamoDB"
 
     """
     Comrpobar que la imagen existe en s3

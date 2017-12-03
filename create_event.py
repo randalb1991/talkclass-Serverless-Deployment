@@ -1,8 +1,10 @@
+#VIA API
+
 __author__ = 'Randal'
 import boto3
 import datetime
 import os
-
+import json
 def return_error(statusCode, message):
     response = {
         "statusCode": statusCode,
@@ -11,6 +13,13 @@ def return_error(statusCode, message):
     return response
 
 def handler(event, context=None):
+
+    print("Event Initial: "+str(event))
+    if 'body' in event:
+        # Si el evento se llama desde apigateway(Lambda Proxy), el evento original vendra en el body
+        # Y nos los quedaremos. Si no, usamos el evento original ya que traera todos los datos
+        event = json.loads(event['body'])
+    print("Event took(Body): "+str(event))
 
     if not 'title' in event:
         return return_error(400, "The title cannot be empty")
@@ -49,7 +58,12 @@ def handler(event, context=None):
     response = insert_in_dynamo(event)
     if response is not 200:
         return return_error(response, "Error creating the event in dynamo DB, Rollback done and folders deleted from s3 ")
-    return "Folder created correctly in S3 and a notification send to the topic"
+
+    response_to_return = {
+        "statusCode": 200,
+        "body": "Folder created correctly in S3 and a notification send to the topic"
+    }
+    return response_to_return
 
 def exist_event(title, date):
     client = boto3.client('dynamodb')

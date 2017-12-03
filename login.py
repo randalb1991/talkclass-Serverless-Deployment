@@ -1,3 +1,5 @@
+#VIA API
+
 import requests
 import json
 import datetime
@@ -85,7 +87,7 @@ def login(username, password, clientid, db):
     credentials = {'access_key': aws_access_key, 'secret_key': aws_secret_key, 'session_token':  session_token_aws}
     response3 = {
             "statusCode": 200,
-            "body": credentials
+            "body": json.dumps(credentials)
     }
     return response3
 
@@ -127,6 +129,13 @@ def getDate():
     return str(datetime.datetime.now()).split()[0]
 
 def handler(event, context):
+    print("Event Initial: "+str(event))
+    if 'body' in event:
+        # Si el evento se llama desde apigateway(Lambda Proxy), el evento original vendra en el body
+        # Y nos los quedaremos. Si no, usamos el evento original ya que traera todos los datos
+        event = json.loads(event['body'])
+    print("Event took(Body): "+str(event))
+
     if 'role' not in event:
         response4 = {
             "statusCode": 400,
@@ -160,7 +169,8 @@ def handler(event, context):
         #print("DB: "+db)
         return login(username=event["username"], password=event["password"], clientid=clientid, db=db)
 
-    return "Role not defined"
+    return {
+            "statusCode": 400,
+            "body": "Role not defined"
+            }
 
-def handler2(event, context):
-    return "evento 2"
