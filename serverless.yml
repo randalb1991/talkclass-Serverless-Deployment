@@ -26,7 +26,8 @@ provider:
     REK_MAX_LABEL: 6
     #---------------API GATEWAY----------------#
     PATH_BASE: talkclass
-  #---------------IAM Policy------------------
+
+#----------------------------------------------- IAM POLICY----------------------------------------------------------
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -61,7 +62,11 @@ custom:
     dockerizePip: true
 
 
+
+
+#----------------------------------------------- LAMBDA----------------------------------------------------------
 functions:
+  #---------------------------AUTHENTICATION-----------------
   login:
     handler: login.handler
     environment:
@@ -76,8 +81,14 @@ functions:
       connectionParent: ${self:provider.environment.AUTH0_DB_PARENT}
       #---Dynamo Tables--
       tableUsersLogged: ${self:provider.environment.DYNAMO_USERSLOGGED_TABLE}
+    events:
+      - http:
+          path: ${self:provider.environment.PATH_BASE}/login
+          method: post
+          cors: true
 
   signup:
+    # VIA API
     handler: signup.handler
     environment:
       #----AUTH0 URL-------
@@ -101,7 +112,11 @@ functions:
           path: ${self:provider.environment.PATH_BASE}/signup
           method: post
           cors: true
+
+  #---------------------------CLASSROOMS----------------------
+
   createclassroom:
+    # VIA API
     handler: CreateClassroom.handler
     environment:
       #---Dynamo Tables--
@@ -114,8 +129,9 @@ functions:
           path: ${self:provider.environment.PATH_BASE}/classrooms
           method: post
           cors: true
-
+  #-----------------------------EVENTS---------------------------
   createevent:
+    # VIA API
     handler: create_event.handler
     environment:
       #---Dynamo Tables--
@@ -124,8 +140,14 @@ functions:
       #----S3 Buckets------
       originalBucket: ${self:provider.environment.BUCKET_NAME}
       resizedBucket: ${self:provider.environment.BUCKET_NAME}-resized
-
+    events:
+      - http:
+          path: ${self:provider.environment.PATH_BASE}/events
+          method: post
+          cors: true
+  #------------------------------MULTIMEDIA-----------------------
   uploadpicture:
+    # VIA API
     handler: uploadPicture.handler
     environment:
       #---Dynamo Tables--
@@ -139,6 +161,12 @@ functions:
       resizedBucket: ${self:provider.environment.BUCKET_NAME}-resized
       #-----AWS Rekognition----#
       maxLabel: ${self:provider.environment.REK_MAX_LABEL}
+    events:
+      - http:
+          path: ${self:provider.environment.PATH_BASE}/pictures
+          method: post
+          cors: true
+  #----------------------------BY TRIGGERS------------------------
   reduce:
     handler: reduce.handler
 #    events:
@@ -152,6 +180,8 @@ functions:
       tableClassroom: ${self:provider.environment.DYNAMO_CLASSROOMS_TABLE}
 
 
+
+#---------------------------------------------- RESOURCES-----------------------------------------------------
 resources:
   Resources:
   #------------------------S3 Resources ------------------------------

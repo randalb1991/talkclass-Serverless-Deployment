@@ -1,8 +1,18 @@
+#VIA API
+
 __author__ = 'Randal'
 import boto3
 import os
+import json
+
 def handler(event, context):
-    print("Evento: "+str(event))
+    print("Event Initial: "+str(event))
+    if 'body' in event:
+        # Si el evento se llama desde apigateway(Lambda Proxy), el evento original vendra en el body
+        # Y nos los quedaremos. Si no, usamos el evento original ya que traera todos los datos
+        event = json.loads(event['body'])
+    print("Event took(Body): "+str(event))
+
     if 'class' in event:
         classs = event["class"]
     else:
@@ -48,7 +58,12 @@ def create_classroom(classs, level):
         rollback(s3=True, path=path, sns=True, topic=arn_topic)
         return return_error(response['ResponseMetadata']['HTTPStatusCode'], "Error Inserting in Dynamo DB. Rollback executed \n"+response['ResponseMetadata'])
 
-    return "Classroom created correctly with a foler in "+path+" and SNS Topic "+arn_topic
+    response_to_return = {
+        "statusCode": 200,
+        "body": "Classroom created correctly with a folder in "+path+" and SNS Topic "+arn_topic
+    }
+    #return "Classroom created correctly with a foler in "+path+" and SNS Topic "+arn_topic
+    return response_to_return
 
 def rollback(s3, path, sns, topic=None):
     if s3:

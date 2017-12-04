@@ -1,9 +1,10 @@
+# VIA API
 __author__ = 'Randal'
 import boto3
 import requests
 import datetime
 import os
-
+import json
 def return_error(statusCode, message):
     response = {
         "statusCode": statusCode,
@@ -12,6 +13,13 @@ def return_error(statusCode, message):
     return response
 
 def handler(event, context):
+
+    print("Event Initial: "+str(event))
+    if 'body' in event:
+        # Si el evento se llama desde apigateway(Lambda Proxy), el evento original vendra en el body
+        # Y nos los quedaremos. Si no, usamos el evento original ya que traera todos los datos
+        event = json.loads(event['body'])
+    print("Event took(Body): "+str(event))
 
     if 'email' in event:
         if not valid_email(event["email"]):
@@ -72,7 +80,7 @@ def handler(event, context):
             return return_error(400, "Invalid format of class or empty. The classroom should be similar to \"1A Infantil\"  ")
         if not exists_classroom(classs=classs, level=level):
             return return_error(400, "The classroom doesn't exists on the data base")
-        return signup_parent(event=event)
+        creation_ok_message = signup_parent(event=event)
 
 
     if event["role"] == "teacher":
@@ -88,8 +96,13 @@ def handler(event, context):
 
             if has_tutor(classs=classs, level=level):
                 return return_error(400,  "This class already has a tutor")
-        return signup_teacher(event=event)
+        creation_ok_message = signup_teacher(event=event)
 
+    response_to_return = {
+        "statusCode": 200,
+        "body": creation_ok_message
+    }
+    return response_to_return
 
 def signup_parent(event):
     client_id = os.environ['clientIdParent']
