@@ -166,6 +166,20 @@ functions:
           path: ${self:provider.environment.PATH_BASE}/pictures
           method: post
           cors: true
+          authorizer: aws_iam
+  #---------------------------- Profiles ------------------------
+  getmyprofile:
+    # VIA API
+    handler: get_my_profile.handler
+    environment:
+      #---Dynamo Tables--
+      tableUsersLogged: ${self:provider.environment.DYNAMO_USERSLOGGED_TABLE}
+      tableUsers: ${self:provider.environment.DYNAMO_USER_TABLE}
+    events:
+      - http:
+          path: ${self:provider.environment.PATH_BASE}/profile
+          method: post
+          cors: true
   #----------------------------BY TRIGGERS------------------------
   reduce:
     handler: reduce.handler

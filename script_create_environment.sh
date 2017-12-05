@@ -12,3 +12,4 @@ export tableUsers=Users
 export originalBucket=talkclasstfg-bucket
 export resizedBucket=talkclasstfg-bucketresized
 export urlSignUp=https://talkclass.auth0.com/dbconnections/signup
+export tableUsersLogged=Users_logged
