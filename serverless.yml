@@ -86,7 +86,26 @@ functions:
           path: ${self:provider.environment.PATH_BASE}/login
           method: post
           cors: true
-
+  testlogin:
+    handler: loginreturningusername.handler
+    environment:
+      #----AUTH0 URL-------
+      urlSessionOauth: ${self:provider.environment.AUTH0_URL_SESSION_0AUTH}
+      urlSessionDelegation: ${self:provider.environment.AUTH0_URL_SESSION_DELEGATION}
+      urlSignUp: ${self:provider.environment.AUTH0_URL_SIGNUP}
+      #---AUTH0 DB---------
+      clientIdTeacher: ${self:provider.environment.AUTH0_CLIENT_ID_TEACHER}
+      connectionTeacher: ${self:provider.environment.AUTH0_DB_TEACHER}
+      clientIdParent: ${self:provider.environment.AUTH0_CLIENT_ID_PARENT}
+      connectionParent: ${self:provider.environment.AUTH0_DB_PARENT}
+      #---Dynamo Tables--
+      tableUsersLogged: ${self:provider.environment.DYNAMO_USERSLOGGED_TABLE}
+      tableUsers: ${self:provider.environment.DYNAMO_USER_TABLE}
+    events:
+      - http:
+          path: ${self:provider.environment.PATH_BASE}/loginwu
+          method: post
+          cors: true
   signup:
     # VIA API
     handler: signup.handler
