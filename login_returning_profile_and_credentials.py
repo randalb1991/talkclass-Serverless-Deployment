@@ -12,6 +12,9 @@ import boto3
 def return_error(statusCode, message):
     response = {
         "statusCode": statusCode,
+        "headers": {
+                    "Access-Control-Allow-Origin" : "*"
+                    },
         "body": message
     }
     return response
@@ -86,30 +89,42 @@ def login(username, password, clientid, db):
 
      # If the login is ok. We save the type of authentication: email or username
     if '@' in username:
-        email = True
+        is_email_account = True
     else:
-        email = False
-    if email:
-        username = get_username_from_email(username)
+        is_email_account = False
+    user = get_profile_from_dynamo(username, is_email_account)
 
-
-    saveUserLogged(username=username, id_token_auth0=auth0_token_id, secret_key=aws_secret_key, access_key=aws_access_key,
+    if user is False:
+        response = {
+            "statusCode": 200,
+            "headers": {
+                    "Access-Control-Allow-Origin" : "*"
+                    },
+            "body": "User profile not found on dynamoDB"
+        }
+        return response
+    profile = parse_dynamo_response(user)
+    saveUserLogged(username=profile['Username'], id_token_auth0=auth0_token_id, secret_key=aws_secret_key, access_key=aws_access_key,
                    session_token=session_token_aws, expiration=expiration)
-    credentials = {'access_key': aws_access_key, 'secret_key': aws_secret_key, 'session_token':  session_token_aws, 'username': username}
+    credentials = {'access_key': aws_access_key, 'secret_key': aws_secret_key, 'session_token':  session_token_aws}
+    body_response = {"credentials": credentials, "profile": profile}
     response3 = {
             "statusCode": 200,
-            "body": json.dumps(credentials)
+            "headers": {
+                    "Access-Control-Allow-Origin" : "*"
+                    },
+            "body": json.dumps(body_response)
     }
     return response3
-def get_username_from_email(email):
+def get_profile_from_dynamo(username, is_email_account):
     client = boto3.client('dynamodb')
     response = client.scan(
         TableName=os.environ['tableUsers'],
         Select='ALL_ATTRIBUTES',
         ScanFilter={
-            'Email':{
+            'Email' if is_email_account else 'Username':{
                 'AttributeValueList':[{
-                    'S': email
+                    'S': username
                     }
                     ],
                 'ComparisonOperator': 'EQ'
@@ -118,11 +133,24 @@ def get_username_from_email(email):
             }
     )
     try:
-        return response["Items"][0]['Username']['S']
+        return response["Items"][0]
     except IndexError:
         return False
     except KeyError:
         return False
+def parse_dynamo_response(user):
+    user_dict = {}
+    print("Parsing the user given from dynamo")
+    try:
+        for key, value in user.items():
+            for k, v in value.items():
+                user_dict[key] = v
+        print("New User dic "+str(user_dict))
+        return user_dict
+    except Exception as e:
+        print("Error parsing user obtained from dynamo db to User Dic")
+        return False
+
 def saveUserLogged(username, id_token_auth0, secret_key, access_key,session_token, expiration):
     """
     This function will save a item in the table users_logged with the information about the login(username, token, date)
@@ -172,6 +200,9 @@ def handler(event, context):
     if 'role' not in event:
         response4 = {
             "statusCode": 400,
+            "headers": {
+                    "Access-Control-Allow-Origin" : "*"
+                    },
             "body": "Role not given. should be parent or teacher"
             }
         return response4
@@ -179,6 +210,9 @@ def handler(event, context):
     if 'username' not in event:
         response4 = {
             "statusCode": 400,
+            "headers": {
+                    "Access-Control-Allow-Origin" : "*"
+                    },
             "body": "Username not given"
             }
         return response4
@@ -186,6 +220,9 @@ def handler(event, context):
     if 'password' not in event:
         response4 = {
             "statusCode": 400,
+            "headers": {
+                    "Access-Control-Allow-Origin" : "*"
+                    },
             "body": "Password not given"
             }
         return response4
@@ -205,6 +242,9 @@ def handler(event, context):
 
     return {
             "statusCode": 400,
+            "headers": {
+                    "Access-Control-Allow-Origin" : "*"
+                    },
             "body": "Role not defined"
             }
 

@@ -22,19 +22,9 @@ def handler(event, context):
         event = json.loads(event['body'])
     print("Event took(Body): "+str(event))
 
-    if 'session_token' not in event:
-        return return_error(400, "Session Token not given")
-    if 'secret_key' not in event:
-        return return_error(400, "Secret key not given")
-    if 'access_key' not in event:
-        return return_error(400, "Access key not given")
-    # Values checker
-
-    # Values exists?
-    username = get_username_given_token(session_token=event['session_token'], access_key=event['access_key'], secret_key=event['secret_key'])
-    print username
-    if username is False:
-        return return_error(401, "Invalid aws credentials ")
+    if 'username' not in event:
+        return return_error(400, "Username not given")
+    username = event["username"]
     user = get_user_given_username(username)
     if username is False:
         return return_error(404, "User doesn't exist in Dynamo DB ")
@@ -78,44 +68,6 @@ def get_user_given_username(username):
     )
     try:
         return response["Items"][0]
-    except IndexError as ie:
-        print("Error in index "+str(ie))
-        return False
-    except KeyError as ke:
-        print("Error in key "+str(ke))
-        return False
-def get_username_given_token(session_token, access_key, secret_key):
-    print("Getting user")
-    client = boto3.client('dynamodb')
-    response = client.scan(
-        TableName=os.environ['tableUsersLogged'],#"Users_logged"
-        Select='ALL_ATTRIBUTES',
-        ScanFilter={
-            'Session Token':{
-                'AttributeValueList': [{
-                    'S': hashlib.sha1(session_token).hexdigest()
-                    }
-                    ],
-                'ComparisonOperator': 'EQ'
-                },
-            'Access Key':{
-                'AttributeValueList': [{
-                    'S': hashlib.sha1(access_key).hexdigest()
-                    }
-                    ],
-                'ComparisonOperator': 'EQ'
-                },
-            'Secret Key':{
-                'AttributeValueList': [{
-                    'S': hashlib.sha1(secret_key).hexdigest()
-                    }
-                    ],
-                'ComparisonOperator': 'EQ'
-                }
-            }
-    )
-    try:
-        return response["Items"][0]['Username']['S']
     except IndexError as ie:
         print("Error in index "+str(ie))
         return False

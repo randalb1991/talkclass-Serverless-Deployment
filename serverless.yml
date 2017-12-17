@@ -87,7 +87,7 @@ functions:
           method: post
           cors: true
   testlogin:
-    handler: loginreturningusername.handler
+    handler: login_returning_profile_and_credentials.handler
     environment:
       #----AUTH0 URL-------
       urlSessionOauth: ${self:provider.environment.AUTH0_URL_SESSION_0AUTH}
