@@ -68,25 +68,6 @@ custom:
 functions:
   #---------------------------AUTHENTICATION-----------------
   login:
-    handler: login.handler
-    environment:
-      #----AUTH0 URL-------
-      urlSessionOauth: ${self:provider.environment.AUTH0_URL_SESSION_0AUTH}
-      urlSessionDelegation: ${self:provider.environment.AUTH0_URL_SESSION_DELEGATION}
-      urlSignUp: ${self:provider.environment.AUTH0_URL_SIGNUP}
-      #---AUTH0 DB---------
-      clientIdTeacher: ${self:provider.environment.AUTH0_CLIENT_ID_TEACHER}
-      connectionTeacher: ${self:provider.environment.AUTH0_DB_TEACHER}
-      clientIdParent: ${self:provider.environment.AUTH0_CLIENT_ID_PARENT}
-      connectionParent: ${self:provider.environment.AUTH0_DB_PARENT}
-      #---Dynamo Tables--
-      tableUsersLogged: ${self:provider.environment.DYNAMO_USERSLOGGED_TABLE}
-    events:
-      - http:
-          path: ${self:provider.environment.PATH_BASE}/login
-          method: post
-          cors: true
-  testlogin:
     handler: login_returning_profile_and_credentials.handler
     environment:
       #----AUTH0 URL-------
@@ -103,7 +84,7 @@ functions:
       tableUsers: ${self:provider.environment.DYNAMO_USER_TABLE}
     events:
       - http:
-          path: ${self:provider.environment.PATH_BASE}/loginwu
+          path: ${self:provider.environment.PATH_BASE}/login
           method: post
           cors: true
   signup:
@@ -178,6 +159,17 @@ functions:
           path: ${self:provider.environment.PATH_BASE}/events
           method: post
           cors: true
+  getevents:
+    # VIA API
+    handler: get_events.handler
+    environment:
+      #---Dynamo Tables--
+      tableEvents: ${self:provider.environment.DYNAMO_EVENTS_TABLE}
+    events:
+      - http:
+          path: ${self:provider.environment.PATH_BASE}/events
+          method: get
+          cors: true
   #------------------------------MULTIMEDIA-----------------------
   uploadpicture:
     # VIA API
@@ -199,7 +191,7 @@ functions:
           path: ${self:provider.environment.PATH_BASE}/pictures
           method: post
           cors: true
-          authorizer: aws_iam
+  #        authorizer: aws_iam
   #---------------------------- Profiles ------------------------
   getmyprofile:
     # VIA API
