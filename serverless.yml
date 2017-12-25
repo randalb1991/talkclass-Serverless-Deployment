@@ -148,6 +148,20 @@ functions:
           path: ${self:provider.environment.PATH_BASE}/classrooms
           method: post
           cors: true
+  getclassrooms:
+    # VIA API
+    handler: get_classrooms.handler
+    environment:
+      #---Dynamo Tables--
+      tableClassroom: ${self:provider.environment.DYNAMO_CLASSROOMS_TABLE}
+      #----S3 Buckets------
+      originalBucket: ${self:provider.environment.BUCKET_NAME}
+      resizedBucket: ${self:provider.environment.BUCKET_NAME}-resized
+    events:
+      - http:
+          path: ${self:provider.environment.PATH_BASE}/classrooms
+          method: get
+          cors: true
   #-----------------------------EVENTS---------------------------
   createevent:
     # VIA API

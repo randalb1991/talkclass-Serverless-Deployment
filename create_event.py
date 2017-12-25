@@ -8,6 +8,9 @@ import json
 def return_error(statusCode, message):
     response = {
         "statusCode": statusCode,
+        "headers": {
+            "Access-Control-Allow-Origin" : "*"
+            },
         "body": message
     }
     return response
@@ -25,7 +28,7 @@ def handler(event, context=None):
         return return_error(400, "The title cannot be empty")
 
     if not 'description' in event:
-        return return_error(400,"The description cannot be empty")
+        return return_error(400, "The description cannot be empty")
 
     if not 'place' in event:
         return return_error(400, "The title cannot be empty")
@@ -61,6 +64,9 @@ def handler(event, context=None):
 
     response_to_return = {
         "statusCode": 200,
+        "headers": {
+            "Access-Control-Allow-Origin" : "*"
+            },
         "body": "Folder created correctly in S3 and a notification send to the topic"
     }
     return response_to_return

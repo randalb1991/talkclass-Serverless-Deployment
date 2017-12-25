@@ -64,7 +64,7 @@ def login(username, password, clientid, db):
     # Petition AUTH0
     response = get_token_auth0(user=username, password=password, clientid=clientid, db=db)
     if response.status_code is not 200:
-        return return_error(response.status_code, response.text)
+        return return_error(response.status_code, response.text['error_description'])
 
     j = json.loads(response.text)
 
@@ -74,7 +74,7 @@ def login(username, password, clientid, db):
     #print(response2.text)
 
     if response2.status_code is not 200:
-        return return_error(response2.status_code, response2.text)
+        return return_error(response2.status_code, response2.text['error_description'])
     j2 = json.loads(response2.text)
     auth0_token_id = j['id_token']
     #print 'Auth0 id_token: '+ auth0_token_id
@@ -245,6 +245,6 @@ def handler(event, context):
             "headers": {
                     "Access-Control-Allow-Origin" : "*"
                     },
-            "body": "Role not defined"
+            "body": "Role not valid! \n Roles allowed: teacher o parent"
             }
 

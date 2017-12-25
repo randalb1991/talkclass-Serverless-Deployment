@@ -6,11 +6,15 @@ import datetime
 import os
 import hashlib
 import boto3
+#DEPRECATED by login_returning_profile_and_credentials
 
 
 def return_error(statusCode, message):
     response = {
         "statusCode": statusCode,
+        "headers": {
+            "Access-Control-Allow-Origin" : "*"
+            },
         "body": message
     }
     return response
@@ -87,6 +91,9 @@ def login(username, password, clientid, db):
     credentials = {'access_key': aws_access_key, 'secret_key': aws_secret_key, 'session_token':  session_token_aws}
     response3 = {
             "statusCode": 200,
+            "headers": {
+                "Access-Control-Allow-Origin" : "*"
+                },
             "body": json.dumps(credentials)
     }
     return response3

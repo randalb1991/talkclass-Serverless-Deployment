@@ -60,6 +60,9 @@ def create_classroom(classs, level):
 
     response_to_return = {
         "statusCode": 200,
+        "headers": {
+                "Access-Control-Allow-Origin" : "*"
+                },
         "body": "Classroom created correctly with a folder in "+path+" and SNS Topic "+arn_topic
     }
     #return "Classroom created correctly with a foler in "+path+" and SNS Topic "+arn_topic
@@ -178,6 +181,9 @@ def create_topic(classs, level):
 def return_error(statusCode, message):
     response = {
         "statusCode": statusCode,
+        "headers":{
+                    "Access-Control-Allow-Origin" : "*"
+                  },
         "body": message
     }
     return response

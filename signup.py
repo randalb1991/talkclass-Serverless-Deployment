@@ -8,6 +8,9 @@ import json
 def return_error(statusCode, message):
     response = {
         "statusCode": statusCode,
+        "headers": {
+            "Access-Control-Allow-Origin" : "*"
+            },
         "body": message
     }
     return response
@@ -100,6 +103,9 @@ def handler(event, context):
 
     response_to_return = {
         "statusCode": 200,
+        "headers": {
+            "Access-Control-Allow-Origin" : "*"
+            },
         "body": creation_ok_message
     }
     return response_to_return

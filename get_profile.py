@@ -1,5 +1,5 @@
 # VIA API
-
+# Pending to implement queryparameters
 __author__ = 'Randal'
 import boto3, os
 import datetime
@@ -8,6 +8,9 @@ import json
 def return_error(statusCode, message):
     response = {
         "statusCode": statusCode,
+        "headers": {
+            "Access-Control-Allow-Origin" : "*"
+            },
         "body": message
     }
     return response
@@ -33,6 +36,9 @@ def handler(event, context):
         return return_error(500, "Error parsing the user obtained from Dynamo DB")
     return {
             "statusCode": 200,
+            "headers": {
+                "Access-Control-Allow-Origin" : "*"
+                },
             "body": json.dumps(user_dic)
             }
 # Notification
