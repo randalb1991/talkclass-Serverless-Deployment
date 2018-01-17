@@ -26,6 +26,8 @@ provider:
     REK_MAX_LABEL: 6
     #---------------API GATEWAY----------------#
     PATH_BASE: talkclass
+    #-------------NAME PHOTO EVENT ------------#
+    PHOTO_EVENT_NAME: eventpicture
 
 #----------------------------------------------- IAM POLICY----------------------------------------------------------
   iamRoleStatements:
@@ -140,7 +142,25 @@ functions:
       resizedBucket: ${self:provider.environment.BUCKET_NAME}-resized
     events:
       - http:
+          # Get Classrooms with or without queries level
+          # PE: /classrooms?level='Infantil'
           path: ${self:provider.environment.PATH_BASE}/classrooms
+          method: get
+          cors: true
+
+  getclassrooms_with_path_parameters:
+    # VIA API
+    handler: get_classrooms.handler_with_path_parameters
+    environment:
+      #---Dynamo Tables--
+      tableClassroom: ${self:provider.environment.DYNAMO_CLASSROOMS_TABLE}
+      #----S3 Buckets------
+      originalBucket: ${self:provider.environment.BUCKET_NAME}
+      resizedBucket: ${self:provider.environment.BUCKET_NAME}-resized
+    events:
+      - http:
+          # Using the resource /classrooms/infantil
+          path: ${self:provider.environment.PATH_BASE}/classrooms/{level}
           method: get
           cors: true
   #-----------------------------EVENTS---------------------------
@@ -154,6 +174,10 @@ functions:
       #----S3 Buckets------
       originalBucket: ${self:provider.environment.BUCKET_NAME}
       resizedBucket: ${self:provider.environment.BUCKET_NAME}-resized
+      photo_event_name: ${self:provider.environment.PHOTO_EVENT_NAME}
+      #-----AWS Rekognition----#
+      maxLabel: ${self:provider.environment.REK_MAX_LABEL}
+
     events:
       - http:
           path: ${self:provider.environment.PATH_BASE}/events
@@ -167,9 +191,29 @@ functions:
       tableEvents: ${self:provider.environment.DYNAMO_EVENTS_TABLE}
     events:
       - http:
+          # Get events with or without queries title, date. place or classroom_invited
+          # PE: /evets?username='halloween'
           path: ${self:provider.environment.PATH_BASE}/events
           method: get
           cors: true
+  getevent_with_path_parameters:
+    # VIA API
+    handler: get_events.handler_with_path_parameters
+    environment:
+      #---Dynamo Tables--
+      tableEvents: ${self:provider.environment.DYNAMO_EVENTS_TABLE}
+    events:
+      # Using the resource /events/fecha/halloween
+      - http:
+          path: ${self:provider.environment.PATH_BASE}/events/{date}
+          method: get
+          cors: true
+      - http:
+          path: ${self:provider.environment.PATH_BASE}/events/{date}/{title}
+          method: get
+          cors: true
+
+
   #------------------------------MULTIMEDIA-----------------------
   uploadpicture:
     # VIA API

@@ -62,3 +62,25 @@ def handler(event, context):
                     },
             "body": json.dumps(classrooms)
             }
+
+def handler_with_path_parameters(event, context):
+    level = None
+    print("Event Initial: "+str(event))
+    if 'pathParameters' in event:
+        pathParameters = event['pathParameters']
+        # Se mira si hay alguna query dentro de la URL para poder filtrar.
+    if pathParameters is not None:
+        if 'level' in pathParameters:
+            level = pathParameters['level']
+            print('Level given in path parameters: '+level)
+
+    response = get_classrooms_from_dynamoDB(level)
+    print(response)
+    classrooms = parse_dynamo_response(response)
+    return {
+            "statusCode": 200,
+            "headers": {
+                    "Access-Control-Allow-Origin" : "*"
+                    },
+            "body": json.dumps(classrooms)
+            }

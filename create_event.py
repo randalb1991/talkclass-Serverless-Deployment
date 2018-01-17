@@ -39,6 +39,11 @@ def handler(event, context=None):
     if not 'classrooms' in event:
         return return_error(400, 'Classrooms cannot be empty')
 
+    if not 'photo_event' in event:
+        return return_error(400, 'Photo event cannot be empty and it should be encoded64')
+    if not 'photo_name' in event:
+        return return_error(400, 'Photo name and extension are necessary: FE: example_picture.png')
+
     if len(event['classrooms']) == 0:
         return return_error(400, 'Please, insert at least 1 classroom')
 
@@ -58,10 +63,22 @@ def handler(event, context=None):
     if response is not 200:
         return return_error(response, message)
 
-    response = insert_in_dynamo(event)
+    # Saving the Picture in s3
+    try:
+        # Name used to save the picture. Its recovered from os environment
+        # File's Extension
+        photo_event_name = os.environ['photo_event_name']+'.'+event['photo_name'].split('.')[1]
+        s3_path = upload_file_to_s3(event=event['title'], date=event['date'], title=photo_event_name, file_encoded=event['photo_event'])
+    except Exception as e:
+        print(e)
+        return return_error(500, "Error inserting the file in S3")
+
+    # Inserting in DynamoDB
+    response = insert_in_dynamo(event, s3_path)
     if response is not 200:
         return return_error(response, "Error creating the event in dynamo DB, Rollback done and folders deleted from s3 ")
 
+    # All ok 200 -> 200
     response_to_return = {
         "statusCode": 200,
         "headers": {
@@ -71,6 +88,39 @@ def handler(event, context=None):
     }
     return response_to_return
 
+def upload_file_to_s3(event, file_encoded, title, date):
+    print("Uploading main imagen file to s3")
+    print('event name '+event)
+    print('date event '+date)
+    print('title picture'+title)
+    print(file_encoded)
+    print(title)
+    print(date)
+    print(event)
+    s3_client = boto3.client('s3')
+    file_path = '/tmp/'+title
+    fh = open(file_path, "wb")
+    fh.write(file_encoded.decode('base64'))
+    fh.close()
+    print('Correctly created in ' +file_path)
+    try:
+        with open(file_path, "wb") as fh:
+            fh.write(file_encoded.decode('base64'))
+        print('Correctly saved ' +file_path)
+    except Exception:
+        print("Error decoding and creating the file")
+        raise
+    s3_path = "Events/"+event+"/"+date.replace('/', '-')+"/"+title
+
+
+
+    try:
+        s3_client.upload_file(file_path, os.environ['originalBucket'], s3_path)
+    except Exception:
+        print("Error uploading the picture "+file_path+" to "+s3_path+" in the bucket "+os.environ['originalBucket'] +"")
+        raise
+
+    return s3_path
 def exist_event(title, date):
     client = boto3.client('dynamodb')
     response = client.scan(
@@ -97,7 +147,7 @@ def exist_event(title, date):
 
     return response["Count"] > 0
 
-def insert_in_dynamo(event):
+def insert_in_dynamo(event, picture_key):
     client = boto3.client('dynamodb')
     response = client.put_item(
         TableName=os.environ['tableEvents'],
@@ -116,6 +166,12 @@ def insert_in_dynamo(event):
             },
             'Place':{
                 'S': event["place"]
+            },
+            'Picture':{
+                'S': picture_key
+            },
+            'Tags': {
+                'SS': getLabels(picture_key)
             }
         }
     )
@@ -264,6 +320,7 @@ def valid_date(date):
 
     correctDate = None
     try:
+        date = date.replace('-','/')
         date = date.split("/")
         year = date[2]
         month = date[1]
@@ -277,3 +334,29 @@ def valid_date(date):
     except ValueError:
         correctDate = False
     return correctDate
+
+def getLabels(picture_key):
+    print("getting labels")
+    labels = []
+    client = boto3.client('rekognition')
+    response = client.detect_labels(
+    Image={
+        'S3Object': {
+            'Bucket': os.environ['originalBucket'],
+            'Name': picture_key,
+        }
+    },
+    MaxLabels=int(os.environ['maxLabel'])
+    )
+    for label in response['Labels']:
+        print(str(label['Name']))
+        labels.append(label['Name'])
+    return labels
+
+
+
+
+
+
+
+
