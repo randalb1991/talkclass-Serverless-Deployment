@@ -20,20 +20,16 @@ def parse_dynamo_response(classrooms):
         print("Error parsing user obtained from dynamo db to User Dic"+str(e))
         return False
 
-def get_classrooms_from_dynamoDB(level):
+def get_classrooms_from_dynamoDB(level=None):
+    scan ={}
     if level is None:
-        scan = {}
-    else:
-        scan = {
-            'Level': {
+        scan['Level'] = {
                 'AttributeValueList':[{
                     'S': level
                     }
                     ],
                 'ComparisonOperator': 'EQ'
                 }
-
-            }
     client = boto3.client('dynamodb')
     response = client.scan(
         TableName=os.environ['tableClassroom'],

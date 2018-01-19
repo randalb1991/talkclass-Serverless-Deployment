@@ -86,40 +86,15 @@ functions:
       tableUsers: ${self:provider.environment.DYNAMO_USER_TABLE}
     events:
       - http:
-          path: ${self:provider.environment.PATH_BASE}/login
-          method: post
-          cors: true
-  signup:
-    # VIA API
-    handler: signup.handler
-    environment:
-      #----AUTH0 URL-------
-      urlSessionOauth: ${self:provider.environment.AUTH0_URL_SESSION_0AUTH}
-      urlSessionDelegation: ${self:provider.environment.AUTH0_URL_SESSION_DELEGATION}
-      urlSignUp: ${self:provider.environment.AUTH0_URL_SIGNUP}
-
-      #---AUTH0 DB---------
-      clientIdTeacher: ${self:provider.environment.AUTH0_CLIENT_ID_TEACHER}
-      connectionTeacher: ${self:provider.environment.AUTH0_DB_TEACHER}
-      clientIdParent: ${self:provider.environment.AUTH0_CLIENT_ID_PARENT}
-      connectionParent: ${self:provider.environment.AUTH0_DB_PARENT}
-      #---Dynamo Tables--
-      tableClassroom: ${self:provider.environment.DYNAMO_CLASSROOMS_TABLE}
-      tableUsers: ${self:provider.environment.DYNAMO_USER_TABLE}
-      #----S3 Buckets------
-      originalBucket: ${self:provider.environment.BUCKET_NAME}
-      resizedBucket: ${self:provider.environment.BUCKET_NAME}-resized
-    events:
-      - http:
-          path: ${self:provider.environment.PATH_BASE}/signup
+          path: ${self:provider.environment.PATH_BASE}/authentication
           method: post
           cors: true
 
   #---------------------------CLASSROOMS----------------------
 
-  createclassroom:
+  post_classroom:
     # VIA API
-    handler: CreateClassroom.handler
+    handler: post_classroom.handler
     environment:
       #---Dynamo Tables--
       tableClassroom: ${self:provider.environment.DYNAMO_CLASSROOMS_TABLE}
@@ -131,7 +106,7 @@ functions:
           path: ${self:provider.environment.PATH_BASE}/classrooms
           method: post
           cors: true
-  getclassrooms:
+  get_classrooms:
     # VIA API
     handler: get_classrooms.handler
     environment:
@@ -148,7 +123,7 @@ functions:
           method: get
           cors: true
 
-  getclassrooms_with_path_parameters:
+  get_classrooms_with_path_parameters:
     # VIA API
     handler: get_classrooms.handler_with_path_parameters
     environment:
@@ -164,9 +139,9 @@ functions:
           method: get
           cors: true
   #-----------------------------EVENTS---------------------------
-  createevent:
+  post_event:
     # VIA API
-    handler: create_event.handler
+    handler: post_event.handler
     environment:
       #---Dynamo Tables--
       tableClassroom: ${self:provider.environment.DYNAMO_CLASSROOMS_TABLE}
@@ -183,7 +158,7 @@ functions:
           path: ${self:provider.environment.PATH_BASE}/events
           method: post
           cors: true
-  getevents:
+  get_events:
     # VIA API
     handler: get_events.handler
     environment:
@@ -196,7 +171,7 @@ functions:
           path: ${self:provider.environment.PATH_BASE}/events
           method: get
           cors: true
-  getevent_with_path_parameters:
+  get_event_with_path_parameters:
     # VIA API
     handler: get_events.handler_with_path_parameters
     environment:
@@ -236,8 +211,8 @@ functions:
           method: post
           cors: true
   #        authorizer: aws_iam
-  #---------------------------- Profiles ------------------------
-  getmyprofile:
+  #---------------------------- Users ------------------------
+  get_myprofile:
     # VIA API
     handler: get_my_profile.handler
     environment:
@@ -247,6 +222,58 @@ functions:
     events:
       - http:
           path: ${self:provider.environment.PATH_BASE}/profile
+          method: post
+          cors: true
+  get_users:
+    # VIA API
+    handler: get_users.handler
+    environment:
+      #---Dynamo Tables--
+      tableUsers: ${self:provider.environment.DYNAMO_USER_TABLE}
+    events:
+      - http:
+          # Get users with or without queries username, email, classroom, phone, address, role
+          # PE: /users?role='parent'
+          path: ${self:provider.environment.PATH_BASE}/users/
+          method: get
+          cors: true
+  get_user_with_path_parameters:
+    # VIA API
+    handler: get_users.handler_with_path_parameters
+    environment:
+      #---Dynamo Tables--
+      tableUsers: ${self:provider.environment.DYNAMO_USER_TABLE}
+    events:
+      - http:
+          # Using the resource /users/pepitoperez
+          path: ${self:provider.environment.PATH_BASE}/users/{username}
+          method: get
+          cors: true
+
+
+  post_users:
+    # VIA API
+    handler: post_users.handler
+    environment:
+      #----AUTH0 URL-------
+      urlSessionOauth: ${self:provider.environment.AUTH0_URL_SESSION_0AUTH}
+      urlSessionDelegation: ${self:provider.environment.AUTH0_URL_SESSION_DELEGATION}
+      urlSignUp: ${self:provider.environment.AUTH0_URL_SIGNUP}
+
+      #---AUTH0 DB---------
+      clientIdTeacher: ${self:provider.environment.AUTH0_CLIENT_ID_TEACHER}
+      connectionTeacher: ${self:provider.environment.AUTH0_DB_TEACHER}
+      clientIdParent: ${self:provider.environment.AUTH0_CLIENT_ID_PARENT}
+      connectionParent: ${self:provider.environment.AUTH0_DB_PARENT}
+      #---Dynamo Tables--
+      tableClassroom: ${self:provider.environment.DYNAMO_CLASSROOMS_TABLE}
+      tableUsers: ${self:provider.environment.DYNAMO_USER_TABLE}
+      #----S3 Buckets------
+      originalBucket: ${self:provider.environment.BUCKET_NAME}
+      resizedBucket: ${self:provider.environment.BUCKET_NAME}-resized
+    events:
+      - http:
+          path: ${self:provider.environment.PATH_BASE}/users
           method: post
           cors: true
   #----------------------------BY TRIGGERS------------------------
