@@ -49,7 +49,7 @@ def handler(event, context=None):
 
 
     if not valid_date(event["date"]):
-        return return_error(400, "Invalid day. The day should has the format dd/mm/yyyy and should be posterior to the current day")
+        return return_error(400, "Invalid day. The day should has the format dd-mm-yyyy and should be posterior to the current day")
 
     if exist_event(event["title"], event["date"]):
         return return_error(409, "An event with the same name and day exist")
@@ -320,7 +320,7 @@ def valid_date(date):
 
     correctDate = None
     try:
-        date = date.replace('-','/')
+        date = date.replace('-', '/')
         date = date.split("/")
         year = date[2]
         month = date[1]

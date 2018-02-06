@@ -3,7 +3,15 @@ import json
 import os
 import boto3
 
-
+def return_error(statusCode, message):
+    response = {
+        "statusCode": statusCode,
+        "headers": {
+            "Access-Control-Allow-Origin" : "*"
+            },
+        "body": message
+    }
+    return response
 def parse_dynamo_response(classrooms):
     classrooms_dict = []
     print("Parsing the user given from dynamo")
@@ -22,7 +30,8 @@ def parse_dynamo_response(classrooms):
 
 def get_classrooms_from_dynamoDB(level=None):
     scan ={}
-    if level is None:
+
+    if level is not None:
         scan['Level'] = {
                 'AttributeValueList':[{
                     'S': level
@@ -30,6 +39,8 @@ def get_classrooms_from_dynamoDB(level=None):
                     ],
                 'ComparisonOperator': 'EQ'
                 }
+    print('Scan: ')
+    print(scan)
     client = boto3.client('dynamodb')
     response = client.scan(
         TableName=os.environ['tableClassroom'],
@@ -60,15 +71,17 @@ def handler(event, context):
             }
 
 def handler_with_path_parameters(event, context):
-    level = None
     print("Event Initial: "+str(event))
-    if 'pathParameters' in event:
-        pathParameters = event['pathParameters']
-        # Se mira si hay alguna query dentro de la URL para poder filtrar.
-    if pathParameters is not None:
-        if 'level' in pathParameters:
-            level = pathParameters['level']
-            print('Level given in path parameters: '+level)
+    if 'pathParameters' is None:
+        print('pathParameters is None')
+        return return_error(404, "Path Parameters not given. URL used should be similar to /classroom/Infantil")
+    pathParameters = event['pathParameters']
+    # Se mira si hay alguna query dentro de la URL para poder filtrar.
+    if 'level' not in pathParameters:
+        return return_error(404, "Level Path Parameters not given. URL used should be similar to /classroom/Infantil")
+    else:
+        level = pathParameters['level']
+        print('Level given in path parameters: '+level)
 
     response = get_classrooms_from_dynamoDB(level)
     print(response)

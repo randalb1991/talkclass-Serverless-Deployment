@@ -7,7 +7,10 @@ import os
 import hashlib
 import boto3
 #DEPRECATED by login_returning_profile_and_credentials
-
+"""
+t = datetime.datetime.utcnow()
+amzdate = t.strftime('%Y%m%dT%H%M%SZ')
+"""
 
 def return_error(statusCode, message):
     response = {

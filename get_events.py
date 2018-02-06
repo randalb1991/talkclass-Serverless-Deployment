@@ -54,7 +54,8 @@ def get_events_from_dynamoDB(title=None, date=None, place=None, classroom_invite
                                 ],
                             'ComparisonOperator': 'CONTAINS'
                         }
-    print scan
+    print('Scan')
+    print(scan)
     client = boto3.client('dynamodb')
     response = client.scan(
         TableName='Eventos',
@@ -112,6 +113,7 @@ def handler_with_path_parameters(event, context):
             title = pathParameters['title']
             print('Title given in path parameters: '+title)
         if 'place' in pathParameters:
+            # Doesn't used yet
             print('Place given in path parameters: '+place)
             place = pathParameters['place']
     response = get_events_from_dynamoDB(title=title, date=date,place=place,classroom_invited=classroom_invited)

@@ -9,7 +9,7 @@ def return_error(statusCode, message):
     response = {
         "statusCode": statusCode,
         "headers": {
-            "Access-Control-Allow-Origin" : "*"
+            "Access-Control-Allow-Origin": "*"
             },
         "body": message
     }
@@ -83,8 +83,10 @@ def handler(event, context):
             return return_error(400, "Invalid format of class or empty. The classroom should be similar to \"1A Infantil\"  ")
         if not exists_classroom(classs=classs, level=level):
             return return_error(400, "The classroom doesn't exists on the data base")
-        creation_ok_message = signup_parent(event=event)
+        message, final_status = signup_parent(event=event)
 
+        if (200 < final_status) or (final_status> 220):
+            return return_error(final_status, message)
 
     if event["role"] == "teacher":
         if 'tutor_class' in event:
@@ -99,14 +101,16 @@ def handler(event, context):
 
             if has_tutor(classs=classs, level=level):
                 return return_error(400,  "This class already has a tutor")
-        creation_ok_message = signup_teacher(event=event)
+        message, final_status = signup_teacher(event=event)
 
+        if (200 < final_status) or (final_status> 220):
+            return return_error(final_status, message)
     response_to_return = {
         "statusCode": 200,
         "headers": {
-            "Access-Control-Allow-Origin" : "*"
+            "Access-Control-Allow-Origin": "*"
             },
-        "body": creation_ok_message
+        "body": message
     }
     return response_to_return
 
@@ -129,7 +133,6 @@ def signup_parent(event):
             Implementation of rollback pending. Rollback should delete the user on auth0
         """
 
-
     #Inserting the user on DynamoDB
     response = insert_parent(event=event, path=path)
     if response['ResponseMetadata']['HTTPStatusCode'] is not 200:
@@ -145,7 +148,7 @@ def signup_parent(event):
         rollback(s3=True, path=path, auth0=True, client_id=client_id, connection=connection, username=event["username"], dynamo=True)
         return "The user cannot be suscribed to the topic of the classroom. Rollback done and folder in s3 deleted. User deleted in dynamo db. Please delete manually the user in auth0 \n"
 
-    return "User created correctly on Auth0, dynamoDB, s3, and subscribed to the topic of the classroom \n"
+    return "User created correctly on Auth0, dynamoDB, s3, and subscribed to the topic of the classroom \n", 200
 
 
 def signup_teacher(event):
@@ -177,7 +180,7 @@ def signup_teacher(event):
             rollback(s3=True, path=path, auth0=True, client_id=client_id, connection=connection, username=event["username"], dynamo=True)
             return "The user cannot be suscribed to the topic of the classroom. Rollback done and folder in s3 deleted. User deleted in dynamo db. Please delete manually the user in auth0 \n"
 
-    return "User created correctly on Auth0, dynamoDB, s3, and subscribed to the topic of the classroom \n"
+    return "User created correctly on Auth0, dynamoDB, s3, and subscribed to the topic of the classroom \n", 200
 
 
 
@@ -441,7 +444,7 @@ def has_tutor(classs, level):
 
 def valid_phone(phone):
     try:
-        correct = len(phone) > 9
+        correct = len(str(phone)) > 9
         phone = int(phone)
         return correct
     except ValueError:
@@ -484,7 +487,7 @@ def valid_postal_code(postal_code):
     if not postal_code:
         return False
     try:
-        size = (len(postal_code) > 4) & (len(postal_code) < 8)
+        size = (len(str(postal_code)) > 4) & (len(str(postal_code)) < 10)
         postal_code = int(postal_code)
         return size
     except ValueError:
