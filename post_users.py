@@ -72,6 +72,13 @@ def handler(event, context):
     else:
          return return_error(400, "Postal code field is empty")
 
+    if not 'photo_profile' in event:
+        return return_error(400, 'Photo profile cannot be empty and it should be encoded64')
+    if not event['photo_profile']:
+        return return_error(400, 'Photo profile cannot be empty and it should be encoded64')
+    if not 'photo_profile_name' in event:
+        return return_error(400, 'Photo name and extension are necessary: FE: example_picture.png')
+
     if exist_user(event["username"]):
         return return_error(400, "Username is already exists")
 
@@ -105,6 +112,7 @@ def handler(event, context):
 
         if (200 < final_status) or (final_status> 220):
             return return_error(final_status, message)
+
     response_to_return = {
         "statusCode": 200,
         "headers": {
@@ -132,9 +140,17 @@ def signup_parent(event):
         """
             Implementation of rollback pending. Rollback should delete the user on auth0
         """
-
+    # Uploading Picture to s3
+    try:
+        # Name used to save the picture. Its recovered from os environment
+        # File's Extension
+        photo_profile_name = os.environ['photo_profile_name']+'.'+event['photo_profile_name'].split('.')[1]
+        s3_path = upload_file_to_s3(path=path, photo_profile_name=photo_profile_name, file_encoded=event['photo_profile'])
+    except Exception as e:
+        print(e)
+        return "Error inserting the file in S3", 500
     #Inserting the user on DynamoDB
-    response = insert_parent(event=event, path=path)
+    response = insert_parent(event=event, path=s3_path)
     if response['ResponseMetadata']['HTTPStatusCode'] is not 200:
         rollback(s3=True, path=path, auth0=True, client_id=client_id, connection=connection, username=event["username"])
         return "Error creating the user in DynamoDB. Rollback executed and folder "+path+" deleted from s3. . Please delete manually the user in auth0 \n", response['ResponseMetadata']
@@ -166,7 +182,15 @@ def signup_teacher(event):
     response, path = create_folder_in_bucket(role=event["role"], username=event["username"])
     if response['ResponseMetadata']['HTTPStatusCode'] is not 200:
         return "Error creating the folder in s3. Please delete manually the user in auth0 \n", response['ResponseMetadata']
-
+        # Uploading Picture to s3
+    try:
+        # Name used to save the picture. Its recovered from os environment
+        # File's Extension
+        photo_profile_name = os.environ['photo_profile_name']+'.'+event['photo_profile_name'].split('.')[1]
+        s3_path = upload_file_to_s3(path=path, photo_profile_name=photo_profile_name, file_encoded=event['photo_profile'])
+    except Exception as e:
+        print(e)
+        return "Error inserting the file in S3", 500
     # Inserting the user on DynamoDB
     response = insert_teacher(event=event, path=path)
     if response['ResponseMetadata']['HTTPStatusCode'] is not 200:
@@ -181,8 +205,6 @@ def signup_teacher(event):
             return "The user cannot be suscribed to the topic of the classroom. Rollback done and folder in s3 deleted. User deleted in dynamo db. Please delete manually the user in auth0 \n"
 
     return "User created correctly on Auth0, dynamoDB, s3, and subscribed to the topic of the classroom \n", 200
-
-
 
 def delete_user_from_dynamo(username):
     client = boto3.client('dynamodb')
@@ -239,15 +261,12 @@ def get_arn_of_classroom(classroom):
     except KeyError:
         return False
 
-
-
 def rollback(s3, path, auth0, client_id, connection, username, dynamo=False):
     if s3:
         delete_folder_in_s3(path)
     #Pending the rollback for auth0
     if dynamo:
         delete_user_from_dynamo(username)
-
 
 def delete_folder_in_s3(path):
     client = boto3.client('s3')
@@ -259,9 +278,6 @@ def delete_folder_in_s3(path):
     Bucket=os.environ['resizedBucket'],
     Key=path
     )
-
-
-
 
 def signup_auth0(client_id, username, email, password, connection):
     headers = {
@@ -280,7 +296,6 @@ def signup_auth0(client_id, username, email, password, connection):
     print body
     response = requests.post(url_session, data=body, headers=headers)
     return response
-
 
 def exist_user(username):
     client = boto3.client('dynamodb')
@@ -529,3 +544,31 @@ def create_folder_in_bucket(role, username):
             Key=path
             )
         return response, path
+
+def upload_file_to_s3(path, file_encoded, photo_profile_name):
+    print("Uploading main imagen file to s3")
+    print('photo profile name '+photo_profile_name)
+    print(file_encoded)
+
+    s3_client = boto3.client('s3')
+    file_path = '/tmp/'+photo_profile_name
+    fh = open(file_path, "wb")
+    fh.write(file_encoded.decode('base64'))
+    fh.close()
+    print('Correctly created in ' +file_path)
+    try:
+        with open(file_path, "wb") as fh:
+            fh.write(file_encoded.decode('base64'))
+        print('Correctly saved ' +file_path)
+    except Exception:
+        print("Error decoding and creating the file")
+        raise
+    s3_path = path+photo_profile_name
+
+    try:
+        s3_client.upload_file(file_path, os.environ['originalBucket'], s3_path)
+    except Exception:
+        print("Error uploading the picture "+file_path+" to "+s3_path+" in the bucket "+os.environ['originalBucket'] +"")
+        raise
+
+    return s3_path

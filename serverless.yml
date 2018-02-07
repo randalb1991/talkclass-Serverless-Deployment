@@ -28,6 +28,7 @@ provider:
     PATH_BASE: talkclass
     #-------------NAME PHOTO EVENT ------------#
     PHOTO_EVENT_NAME: eventpicture
+    PHOTO_PROFILE_NAME: profile
 
 #----------------------------------------------- IAM POLICY----------------------------------------------------------
   iamRoleStatements:
@@ -305,6 +306,8 @@ functions:
       #----S3 Buckets------
       originalBucket: ${self:provider.environment.BUCKET_NAME}
       resizedBucket: ${self:provider.environment.BUCKET_NAME}-resized
+
+      photo_profile_name: ${self:provider.environment.PHOTO_PROFILE_NAME}
     events:
       - http:
           path: ${self:provider.environment.PATH_BASE}/users
