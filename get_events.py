@@ -58,7 +58,7 @@ def get_events_from_dynamoDB(title=None, date=None, place=None, classroom_invite
     print(scan)
     client = boto3.client('dynamodb')
     response = client.scan(
-        TableName='Eventos',
+        TableName=os.environ['tableEvents'],
         Select='ALL_ATTRIBUTES',
         ScanFilter=scan
     )
@@ -79,7 +79,7 @@ def handler(event, context):
         if 'title'in query:
             title = query['title']
         if 'date' in query:
-            date = query['date'].replace('-', '/')
+            date = query['date']
         if 'place' in query:
             place = query['place']
         if 'classroom_invited' in query:
@@ -107,7 +107,7 @@ def handler_with_path_parameters(event, context):
         # Se mira si hay alguna query dentro de la URL para poder filtrar.
     if pathParameters is not None:
         if 'date'in pathParameters:
-            date = pathParameters['date'].replace('-', '/')
+            date = pathParameters['date']
             print('Date given in path parameters: '+date)
         if 'title' in pathParameters:
             title = pathParameters['title']

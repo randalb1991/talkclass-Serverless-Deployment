@@ -64,7 +64,7 @@ def send_notification_event(classrooms, title, description, date, place, is_upda
             Message=messagge,
             Subject=subject
         )
-        print("Publish response:\n "+response)
+        print("Publish response:\n "+str(response))
 
 def get_arn_of_classroom(classroom):
     print(classroom)

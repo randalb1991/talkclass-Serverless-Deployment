@@ -111,7 +111,7 @@ functions:
           path: ${self:provider.environment.PATH_BASE}/classrooms
           method: post
           cors: true
-#          authorizer: aws_iam
+          authorizer: aws_iam
 
   get_classrooms:
     # VIA API
@@ -129,7 +129,7 @@ functions:
           path: ${self:provider.environment.PATH_BASE}/classrooms
           method: get
           cors: true
-#          authorizer: aws_iam
+          authorizer: aws_iam
 
   get_classrooms_with_path_parameters:
     # VIA API
@@ -146,7 +146,7 @@ functions:
           path: ${self:provider.environment.PATH_BASE}/classrooms/{level}
           method: get
           cors: true
-#          authorizer: aws_iam
+          authorizer: aws_iam
 
   #-----------------------------EVENTS---------------------------
   post_event:
@@ -168,7 +168,7 @@ functions:
           path: ${self:provider.environment.PATH_BASE}/events
           method: post
           cors: true
-#          authorizer: aws_iam
+          authorizer: aws_iam
 
   get_events:
     # VIA API
@@ -183,7 +183,7 @@ functions:
           path: ${self:provider.environment.PATH_BASE}/events
           method: get
           cors: true
-#          authorizer: aws_iam
+          authorizer: aws_iam
 
   get_event_with_path_parameters:
     # VIA API
@@ -197,13 +197,13 @@ functions:
           path: ${self:provider.environment.PATH_BASE}/events/{date}
           method: get
           cors: true
-#          authorizer: aws_iam
+          authorizer: aws_iam
 
       - http:
           path: ${self:provider.environment.PATH_BASE}/events/{date}/{title}
           method: get
           cors: true
-#          authorizer: aws_iam
+          authorizer: aws_iam
 
   put_event_with_path_parameters:
     # VIA API
@@ -218,12 +218,12 @@ functions:
           path: ${self:provider.environment.PATH_BASE}/events/{date}/{title}
           method: put
           cors: true
-#          authorizer: aws_iam
+          authorizer: aws_iam
 
   #------------------------------MULTIMEDIA-----------------------
-  uploadpicture:
+  post_multimedia:
     # VIA API
-    handler: uploadPicture.handler
+    handler: post_multimedia.handler
     environment:
       #---Dynamo Tables--
       tableUsersLogged: ${self:provider.environment.DYNAMO_USERSLOGGED_TABLE}
@@ -238,10 +238,22 @@ functions:
       maxLabel: ${self:provider.environment.REK_MAX_LABEL}
     events:
       - http:
-          path: ${self:provider.environment.PATH_BASE}/pictures
+          path: ${self:provider.environment.PATH_BASE}/multimedia
           method: post
           cors: true
-#          authorizer: aws_iam
+          authorizer: aws_iam
+  get_multimedia:
+    # VIA API
+    handler: get_multimedia.handler
+    environment:
+      #---Dynamo Tables--
+      tableMultimedia: ${self:provider.environment.DYNAMO_MULTIMEDIA_TABLE}
+    events:
+      - http:
+          path: ${self:provider.environment.PATH_BASE}/multimedia
+          method: get
+          cors: true
+          authorizer: aws_iam
 
   #---------------------------- Users ------------------------
   get_myprofile:
@@ -269,7 +281,7 @@ functions:
           path: ${self:provider.environment.PATH_BASE}/users/
           method: get
           cors: true
-#          authorizer: aws_iam
+          authorizer: aws_iam
 
   get_user_with_path_parameters:
     # VIA API
@@ -283,7 +295,7 @@ functions:
           path: ${self:provider.environment.PATH_BASE}/users/{username}
           method: get
           cors: true
-#          authorizer: aws_iam
+          authorizer: aws_iam
 
 
   post_users:
@@ -313,7 +325,7 @@ functions:
           path: ${self:provider.environment.PATH_BASE}/users
           method: post
           cors: true
-#          authorizer: aws_iam
+          authorizer: aws_iam
 
   #----------------------------BY TRIGGERS------------------------
   reduce:

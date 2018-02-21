@@ -1,5 +1,5 @@
 #!/bin/sh
-echo "for execute  cmhod u+x, . script_create_environment.sh"
+echo "for execute  cmhod u+x, . script_create_environment.sh source script_create_environment.sh"
 export tableUsersLogged=Users_logged
 export urlSessionOauth=https://talkclass.auth0.com/oauth/ro
 export urlSessionDelegation=https://talkclass.auth0.com/delegation

@@ -24,6 +24,7 @@ def handler(event, context):
         event = json.loads(event['body'])
     print("Event took(Body): "+str(event))
 
+    # Validation
     if 'email' in event:
         if not valid_email(event["email"]):
             return return_error(400, "Invalid email. The mail must be of type myaccount@example.com")
@@ -82,6 +83,7 @@ def handler(event, context):
     if exist_user(event["username"]):
         return return_error(400, "Username is already exists")
 
+    # Parent role
     if event["role"] == "parent":
         try:
             classs = event["classroom"].split(" ")[0]
@@ -94,7 +96,7 @@ def handler(event, context):
 
         if (200 < final_status) or (final_status> 220):
             return return_error(final_status, message)
-
+    # Teacher role
     if event["role"] == "teacher":
         if 'tutor_class' in event:
             try:
@@ -192,19 +194,50 @@ def signup_teacher(event):
         print(e)
         return "Error inserting the file in S3", 500
     # Inserting the user on DynamoDB
-    response = insert_teacher(event=event, path=path)
+    response = insert_teacher(event=event, path=s3_path)
     if response['ResponseMetadata']['HTTPStatusCode'] is not 200:
         rollback(s3=True, path=path, auth0=True, client_id=client_id, connection=connection, username=event["username"])
         return "Error creating the user in DynamoDB. Rollback executed and folder "+path+" deleted from s3. . Please delete manually the user in auth0 \n", response['ResponseMetadata']
 
     # Subscribe to the topic of the classroom
     if 'tutor_class' in event:
+
         response = subscribe_to_topic(event["email"], event["tutor_class"])
+        print("subscribe to topic response "+str(response))
         if not response:
             rollback(s3=True, path=path, auth0=True, client_id=client_id, connection=connection, username=event["username"], dynamo=True)
-            return "The user cannot be suscribed to the topic of the classroom. Rollback done and folder in s3 deleted. User deleted in dynamo db. Please delete manually the user in auth0 \n"
+            return "The user cannot be suscribed to the topic of the classroom. Rollback done and folder in s3 deleted. User deleted in dynamo db. Please delete manually the user in auth0 \n", response['ResponseMetadata']
+        response2 = add_tutor_to_classroom(event["tutor_class"], event['username'])
+        print("update classroom response"+str(response2))
+        if (response2 is not 200):
+            rollback(s3=True, path=path, auth0=True, client_id=client_id, connection=connection, username=event["username"], dynamo=True)
+            return "The classroom cannot be updated with the tutor infrmation. Rollback done and folder in s3 deleted. User deleted in dynamo db. Please delete manually the user in auth0 \n", response2['ResponseMetadata']
 
     return "User created correctly on Auth0, dynamoDB, s3, and subscribed to the topic of the classroom \n", 200
+
+def add_tutor_to_classroom(classroom, username):
+    classs = classroom.split(' ')[0]
+    level = classroom.split(' ')[1]
+    client = boto3.client('dynamodb')
+    response = client.update_item(
+        TableName=os.environ['tableClassroom'],
+        Key={
+            'Class': {
+                'S': classs
+            },
+            'Level': {
+                'S': level
+            }
+        },
+        AttributeUpdates={
+        "Tutor": {
+            "Action": "PUT",
+            "Value": {"S": username}
+        }
+    }
+        )
+    print response
+    return response['ResponseMetadata']['HTTPStatusCode']
 
 def delete_user_from_dynamo(username):
     client = boto3.client('dynamodb')
@@ -349,9 +382,6 @@ def insert_teacher(event, path):
             'Role':{
                 'S': event["role"]
             },
-            'Tutor Class':{
-                'S': tutorclass
-            },
             'Postal Code':{
                 'N': event["postal_code"]
             },
@@ -410,7 +440,7 @@ def valid_date(date):
 
     correctDate = None
     try:
-        date = date.split("/")
+        date = date.split("-")
         year = date[2]
         month = date[1]
         day = date[0]
@@ -441,20 +471,31 @@ def valid_email(email):
 def has_tutor(classs, level):
     client = boto3.client('dynamodb')
     response = client.scan(
-        TableName=os.environ['tableUsers'],
+        TableName=os.environ['tableClassroom'],
         Select='ALL_ATTRIBUTES',
         ScanFilter={
-            'Tutor Class':{
+            'Class':{
                 'AttributeValueList':[{
-                    'S': classs+ " "+ level
+                    'S': classs
+                    }
+                    ],
+                'ComparisonOperator': 'EQ'
+                },
+            'Level':{
+                'AttributeValueList':[{
+                    'S': level
                     }
                     ],
                 'ComparisonOperator': 'EQ'
                 }
-
             }
     )
-    return response["Count"] > 0
+    print("Has tutor: "+str(response))
+    print response["Count"] > 0
+    try:
+        return 'Tutor' in response['Items'][0]
+    except IndexError:
+        return False
 
 
 def valid_phone(phone):
@@ -570,5 +611,5 @@ def upload_file_to_s3(path, file_encoded, photo_profile_name):
     except Exception:
         print("Error uploading the picture "+file_path+" to "+s3_path+" in the bucket "+os.environ['originalBucket'] +"")
         raise
-
+    print('uploaded to '+str(s3_path))
     return s3_path

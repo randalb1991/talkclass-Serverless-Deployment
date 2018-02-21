@@ -39,7 +39,7 @@ def handler_with_path_parameters(event, context):
     else:
         if not pathParameters['date']:
             return return_error(404, "Date Path Parameters not given. URL used should be similar to /events/10-10-2018/halloween")
-        date = pathParameters['date'].replace('-', '/')
+        date = pathParameters['date']
         print('Date given in path parameters: '+date)
 
     if not 'title' in pathParameters:
