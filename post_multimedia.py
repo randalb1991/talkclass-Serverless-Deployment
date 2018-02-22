@@ -167,11 +167,14 @@ def send_notification(classrooms, event):
         print(response)
 
 def generate_message(event):
-    messagge = "Se ha agregado un nuevo:\n\n" \
+    messagge = "Se ha agregado un nuevo archivo :\n\n" \
                "\t User: " + event['username'] + "\n" \
                "\t Title : " + event['title'] + "\n"\
                "\t Event: " + event['event'] + "\n" \
-               "\t Date: " + event['event_date'] + "\n"
+               "\t Date: " + event['event_date'] + "\n" \
+               "Esperamos que tengas un buen dia \n\n" \
+               "TalkClass"
+
     return messagge
 
 def get_arn_of_classroom(classs, level):
