@@ -1,9 +1,7 @@
-
-
 service: talkclass
-
 provider:
   name: aws
+# region: us-west-2
   runtime: python2.7
   environment:
     #-----------------DynamoDB Environment--------
