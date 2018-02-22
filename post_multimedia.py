@@ -1,11 +1,17 @@
+# VIA API
+# Title needs the extension (.png, .jpg....)
 __author__ = 'Randal'
 import boto3, os
 import datetime
 import hashlib
-
+import json
+import base64
 def return_error(statusCode, message):
     response = {
         "statusCode": statusCode,
+        "headers": {
+            "Access-Control-Allow-Origin": "*"
+            },
         "body": message
     }
     return response
@@ -13,16 +19,26 @@ def return_error(statusCode, message):
 def handler(event, context):
     tags = []
     #Values checker
+    print("Event Initial: "+str(event))
+    if 'body' in event:
+        # Si el evento se llama desde apigateway(Lambda Proxy), el evento original vendra en el body
+        # Y nos los quedaremos. Si no, usamos el evento original ya que traera todos los datos
+        event = json.loads(event['body'])
+    print("Event took(Body): "+str(event))
 
-    if 'picture_key'not in event:
-        return return_error(400, "Picture key not given")
-
+    if 'file' not in event:
+        return return_error(400, "File to upload not given")
     if 'title' not in event:
         return return_error(400,  "Title not given")
 
     if 'session_token' not in event:
         return return_error(400, "Session Token not given")
 
+    if 'event' not in event:
+        return return_error(400, "Event not given")
+
+    if 'event_date' not in event:
+        return return_error(400, "Event_date not given")
     # Values checker
 
     # Values exists?
@@ -30,32 +46,61 @@ def handler(event, context):
     if event['username'] is False:
         return return_error(401, "Invalid aws session token ")
 
-    if 'event'in event:
-        if 'event_date' in event:
-            if not exist_event(title=event['event'], event_date=event['event_date']):
-                #rollback(event['picture_key'])
-                return return_error(404,  "Event don't exists")
-            else:
-                response = insert_file_event_DynamoDB(event)
-        else:
-            return return_error(400, "Given event but, not given event date")
-    else:
-        response = insert_file_DynamoDB(event)
+    if not exist_event(title=event['event'], event_date=event['event_date']):
+        #rollback(event['picture_key'])
+        return return_error(404,  "Event don't exists")
+
+    try:
+        s3_path = upload_file_to_s3(event=event['event'], date=event['event_date'], title=event['title'], file_encoded=event['file'])
+    except:
+        return return_error(500, "Error inserting the file in S3")
+
+    response = insert_file_event_DynamoDB(event, s3_path)
 
     if response['ResponseMetadata']['HTTPStatusCode'] is not 200:
         rollback(event['picture_key'])
         return return_error(500, "Error inserting the file. File deleted from s3")
     else:
-        if 'event' in event:
-            classrooms = get_classrooms_of_the_event(event['event'], event['event_date'])
-            send_notification(classrooms, event)
-        return  "File uploaded and saved correctly in dynamoDB"
+        classrooms = get_classrooms_of_the_event(event['event'], event['event_date'])
+        send_notification(classrooms, event)
+        return {
+            "statusCode": 200,
+            "headers": {
+            "Access-Control-Allow-Origin": "*"
+            },
+            "body": "File uploaded and saved correctly in dynamoDB"
+            }
+        #return "File uploaded and saved correctly in dynamoDB"
 
     """
     Comrpobar que la imagen existe en s3
     Enviar notificaciones. Primero se consulta las clases invitadas al evento. Y luego para cada una de las clases se manda una notificaicon
     """
 # Notification
+
+def upload_file_to_s3(event, file_encoded, title, date):
+    s3_client = boto3.client('s3')
+    file_path = '/tmp/'+title
+    fh = open(file_path, "wb")
+    fh.write(file_encoded.decode('base64'))
+    fh.close()
+    print('Correctly created in ' +file_path)
+    try:
+        with open(file_path, "wb") as fh:
+            fh.write(file_encoded.decode('base64'))
+        print('Correctly saved ' +file_path)
+    except Exception:
+        print("Error decoding and creating the file")
+        raise
+    s3_path = "Events/"+event+"/"+date.replace('/', '-')+"/"+title
+    try:
+        s3_client.upload_file(file_path, os.environ['originalBucket'], s3_path)
+    except Exception:
+        print("Error uploading the picture "+file_path+" to "+s3_path+" in the bucket "+os.environ['originalBucket'] +"")
+        raise
+
+    return s3_path
+
 def get_user_given_token(session_token):
     client = boto3.client('dynamodb')
     response = client.scan(
@@ -122,11 +167,14 @@ def send_notification(classrooms, event):
         print(response)
 
 def generate_message(event):
-    messagge = "Se ha agregado un nuevo:\n\n" \
+    messagge = "Se ha agregado un nuevo archivo :\n\n" \
                "\t User: " + event['username'] + "\n" \
                "\t Title : " + event['title'] + "\n"\
                "\t Event: " + event['event'] + "\n" \
-               "\t Date: " + event['event_date'] + "\n"
+               "\t Date: " + event['event_date'] + "\n" \
+               "Esperamos que tengas un buen dia \n\n" \
+               "TalkClass"
+
     return messagge
 
 def get_arn_of_classroom(classs, level):
@@ -159,7 +207,7 @@ def get_arn_of_classroom(classs, level):
         return False
 # Notification
 
-def insert_file_event_DynamoDB(event):
+def insert_file_event_DynamoDB(event, s3_path):
     client = boto3.client('dynamodb')
     response = client.put_item(
         TableName=os.environ['tableMultimedia'],
@@ -173,17 +221,14 @@ def insert_file_event_DynamoDB(event):
             'Event': {
                 'S': event["event"]
             },
-            'Event Date': {
+            'Date': {
                 'S': event["event_date"]
             },
             'Picture Key': {
-                'S': event["picture_key"]
-            },
-            'Date': {
-                'S': getDate()
+                'S': s3_path
             },
             'Tags': {
-                'SS': getLabels(event["picture_key"])
+                'SS': getLabels(s3_path)
             }
         }
     )

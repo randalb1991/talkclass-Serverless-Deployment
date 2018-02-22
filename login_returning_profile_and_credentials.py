@@ -1,23 +1,20 @@
+__author__ = 'Randal'
 #VIA API
-
+# It's the as same that login.py, but this also return the username within credential json
 import requests
 import json
 import datetime
 import os
 import hashlib
 import boto3
-#DEPRECATED by login_returning_profile_and_credentials
-"""
-t = datetime.datetime.utcnow()
-amzdate = t.strftime('%Y%m%dT%H%M%SZ')
-"""
+
 
 def return_error(statusCode, message):
     response = {
         "statusCode": statusCode,
         "headers": {
-            "Access-Control-Allow-Origin" : "*"
-            },
+                    "Access-Control-Allow-Origin" : "*"
+                    },
         "body": message
     }
     return response
@@ -67,7 +64,7 @@ def login(username, password, clientid, db):
     # Petition AUTH0
     response = get_token_auth0(user=username, password=password, clientid=clientid, db=db)
     if response.status_code is not 200:
-        return return_error(response.status_code, response.text)
+        return return_error(response.status_code, response.text['error_description'])
 
     j = json.loads(response.text)
 
@@ -77,7 +74,7 @@ def login(username, password, clientid, db):
     #print(response2.text)
 
     if response2.status_code is not 200:
-        return return_error(response2.status_code, response2.text)
+        return return_error(response2.status_code, response2.text['error_description'])
     j2 = json.loads(response2.text)
     auth0_token_id = j['id_token']
     #print 'Auth0 id_token: '+ auth0_token_id
@@ -89,17 +86,70 @@ def login(username, password, clientid, db):
     #print 'Session token: '+ session_token_aws
     expiration = j2['Credentials']['Expiration']
     #print 'Expirtaion: '+ expiration
-    saveUserLogged(username=username, id_token_auth0=auth0_token_id, secret_key=aws_secret_key, access_key=aws_access_key,
+
+     # If the login is ok. We save the type of authentication: email or username
+    if '@' in username:
+        is_email_account = True
+    else:
+        is_email_account = False
+    user = get_profile_from_dynamo(username, is_email_account)
+
+    if user is False:
+        response = {
+            "statusCode": 200,
+            "headers": {
+                    "Access-Control-Allow-Origin" : "*"
+                    },
+            "body": "User profile not found on dynamoDB"
+        }
+        return response
+    profile = parse_dynamo_response(user)
+    saveUserLogged(username=profile['Username'], id_token_auth0=auth0_token_id, secret_key=aws_secret_key, access_key=aws_access_key,
                    session_token=session_token_aws, expiration=expiration)
     credentials = {'access_key': aws_access_key, 'secret_key': aws_secret_key, 'session_token':  session_token_aws}
+    body_response = {"credentials": credentials, "profile": profile}
     response3 = {
             "statusCode": 200,
             "headers": {
-                "Access-Control-Allow-Origin" : "*"
-                },
-            "body": json.dumps(credentials)
+                    "Access-Control-Allow-Origin" : "*"
+                    },
+            "body": json.dumps(body_response)
     }
     return response3
+def get_profile_from_dynamo(username, is_email_account):
+    client = boto3.client('dynamodb')
+    response = client.scan(
+        TableName=os.environ['tableUsers'],
+        Select='ALL_ATTRIBUTES',
+        ScanFilter={
+            'Email' if is_email_account else 'Username':{
+                'AttributeValueList':[{
+                    'S': username
+                    }
+                    ],
+                'ComparisonOperator': 'EQ'
+                }
+
+            }
+    )
+    try:
+        return response["Items"][0]
+    except IndexError:
+        return False
+    except KeyError:
+        return False
+def parse_dynamo_response(user):
+    user_dict = {}
+    print("Parsing the user given from dynamo")
+    try:
+        for key, value in user.items():
+            for k, v in value.items():
+                user_dict[key] = v
+        print("New User dic "+str(user_dict))
+        return user_dict
+    except Exception as e:
+        print("Error parsing user obtained from dynamo db to User Dic")
+        return False
 
 def saveUserLogged(username, id_token_auth0, secret_key, access_key,session_token, expiration):
     """
@@ -139,6 +189,7 @@ def getDate():
     return str(datetime.datetime.now()).split()[0]
 
 def handler(event, context):
+    #Username can be a email or username. The code will return the real username as part of credentials
     print("Event Initial: "+str(event))
     if 'body' in event:
         # Si el evento se llama desde apigateway(Lambda Proxy), el evento original vendra en el body
@@ -149,6 +200,9 @@ def handler(event, context):
     if 'role' not in event:
         response4 = {
             "statusCode": 400,
+            "headers": {
+                    "Access-Control-Allow-Origin" : "*"
+                    },
             "body": "Role not given. should be parent or teacher"
             }
         return response4
@@ -156,6 +210,9 @@ def handler(event, context):
     if 'username' not in event:
         response4 = {
             "statusCode": 400,
+            "headers": {
+                    "Access-Control-Allow-Origin" : "*"
+                    },
             "body": "Username not given"
             }
         return response4
@@ -163,9 +220,13 @@ def handler(event, context):
     if 'password' not in event:
         response4 = {
             "statusCode": 400,
+            "headers": {
+                    "Access-Control-Allow-Origin" : "*"
+                    },
             "body": "Password not given"
             }
         return response4
+
 
     if event["role"] == "teacher":
         clientid = os.environ['clientIdTeacher']
@@ -181,6 +242,9 @@ def handler(event, context):
 
     return {
             "statusCode": 400,
-            "body": "Role not defined"
+            "headers": {
+                    "Access-Control-Allow-Origin" : "*"
+                    },
+            "body": "Role not valid! \n Roles allowed: teacher o parent"
             }
 

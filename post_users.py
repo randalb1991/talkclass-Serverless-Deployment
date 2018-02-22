@@ -1,18 +1,30 @@
+# VIA API
 __author__ = 'Randal'
 import boto3
 import requests
 import datetime
 import os
-
+import json
 def return_error(statusCode, message):
     response = {
         "statusCode": statusCode,
+        "headers": {
+            "Access-Control-Allow-Origin": "*"
+            },
         "body": message
     }
     return response
 
 def handler(event, context):
 
+    print("Event Initial: "+str(event))
+    if 'body' in event:
+        # Si el evento se llama desde apigateway(Lambda Proxy), el evento original vendra en el body
+        # Y nos los quedaremos. Si no, usamos el evento original ya que traera todos los datos
+        event = json.loads(event['body'])
+    print("Event took(Body): "+str(event))
+
+    # Validation
     if 'email' in event:
         if not valid_email(event["email"]):
             return return_error(400, "Invalid email. The mail must be of type myaccount@example.com")
@@ -61,9 +73,17 @@ def handler(event, context):
     else:
          return return_error(400, "Postal code field is empty")
 
+    if not 'photo_profile' in event:
+        return return_error(400, 'Photo profile cannot be empty and it should be encoded64')
+    if not event['photo_profile']:
+        return return_error(400, 'Photo profile cannot be empty and it should be encoded64')
+    if not 'photo_profile_name' in event:
+        return return_error(400, 'Photo name and extension are necessary: FE: example_picture.png')
+
     if exist_user(event["username"]):
         return return_error(400, "Username is already exists")
 
+    # Parent role
     if event["role"] == "parent":
         try:
             classs = event["classroom"].split(" ")[0]
@@ -72,9 +92,11 @@ def handler(event, context):
             return return_error(400, "Invalid format of class or empty. The classroom should be similar to \"1A Infantil\"  ")
         if not exists_classroom(classs=classs, level=level):
             return return_error(400, "The classroom doesn't exists on the data base")
-        return signup_parent(event=event)
+        message, final_status = signup_parent(event=event)
 
-
+        if (200 < final_status) or (final_status> 220):
+            return return_error(final_status, message)
+    # Teacher role
     if event["role"] == "teacher":
         if 'tutor_class' in event:
             try:
@@ -88,8 +110,19 @@ def handler(event, context):
 
             if has_tutor(classs=classs, level=level):
                 return return_error(400,  "This class already has a tutor")
-        return signup_teacher(event=event)
+        message, final_status = signup_teacher(event=event)
 
+        if (200 < final_status) or (final_status> 220):
+            return return_error(final_status, message)
+
+    response_to_return = {
+        "statusCode": 200,
+        "headers": {
+            "Access-Control-Allow-Origin": "*"
+            },
+        "body": message
+    }
+    return response_to_return
 
 def signup_parent(event):
     client_id = os.environ['clientIdParent']
@@ -109,10 +142,17 @@ def signup_parent(event):
         """
             Implementation of rollback pending. Rollback should delete the user on auth0
         """
-
-
+    # Uploading Picture to s3
+    try:
+        # Name used to save the picture. Its recovered from os environment
+        # File's Extension
+        photo_profile_name = os.environ['photo_profile_name']+'.'+event['photo_profile_name'].split('.')[1]
+        s3_path = upload_file_to_s3(path=path, photo_profile_name=photo_profile_name, file_encoded=event['photo_profile'])
+    except Exception as e:
+        print(e)
+        return "Error inserting the file in S3", 500
     #Inserting the user on DynamoDB
-    response = insert_parent(event=event, path=path)
+    response = insert_parent(event=event, path=s3_path)
     if response['ResponseMetadata']['HTTPStatusCode'] is not 200:
         rollback(s3=True, path=path, auth0=True, client_id=client_id, connection=connection, username=event["username"])
         return "Error creating the user in DynamoDB. Rollback executed and folder "+path+" deleted from s3. . Please delete manually the user in auth0 \n", response['ResponseMetadata']
@@ -126,7 +166,7 @@ def signup_parent(event):
         rollback(s3=True, path=path, auth0=True, client_id=client_id, connection=connection, username=event["username"], dynamo=True)
         return "The user cannot be suscribed to the topic of the classroom. Rollback done and folder in s3 deleted. User deleted in dynamo db. Please delete manually the user in auth0 \n"
 
-    return "User created correctly on Auth0, dynamoDB, s3, and subscribed to the topic of the classroom \n"
+    return "User created correctly on Auth0, dynamoDB, s3, and subscribed to the topic of the classroom \n", 200
 
 
 def signup_teacher(event):
@@ -144,23 +184,60 @@ def signup_teacher(event):
     response, path = create_folder_in_bucket(role=event["role"], username=event["username"])
     if response['ResponseMetadata']['HTTPStatusCode'] is not 200:
         return "Error creating the folder in s3. Please delete manually the user in auth0 \n", response['ResponseMetadata']
-
+        # Uploading Picture to s3
+    try:
+        # Name used to save the picture. Its recovered from os environment
+        # File's Extension
+        photo_profile_name = os.environ['photo_profile_name']+'.'+event['photo_profile_name'].split('.')[1]
+        s3_path = upload_file_to_s3(path=path, photo_profile_name=photo_profile_name, file_encoded=event['photo_profile'])
+    except Exception as e:
+        print(e)
+        return "Error inserting the file in S3", 500
     # Inserting the user on DynamoDB
-    response = insert_teacher(event=event, path=path)
+    response = insert_teacher(event=event, path=s3_path)
     if response['ResponseMetadata']['HTTPStatusCode'] is not 200:
         rollback(s3=True, path=path, auth0=True, client_id=client_id, connection=connection, username=event["username"])
         return "Error creating the user in DynamoDB. Rollback executed and folder "+path+" deleted from s3. . Please delete manually the user in auth0 \n", response['ResponseMetadata']
 
     # Subscribe to the topic of the classroom
     if 'tutor_class' in event:
+
         response = subscribe_to_topic(event["email"], event["tutor_class"])
+        print("subscribe to topic response "+str(response))
         if not response:
             rollback(s3=True, path=path, auth0=True, client_id=client_id, connection=connection, username=event["username"], dynamo=True)
-            return "The user cannot be suscribed to the topic of the classroom. Rollback done and folder in s3 deleted. User deleted in dynamo db. Please delete manually the user in auth0 \n"
+            return "The user cannot be suscribed to the topic of the classroom. Rollback done and folder in s3 deleted. User deleted in dynamo db. Please delete manually the user in auth0 \n", response['ResponseMetadata']
+        response2 = add_tutor_to_classroom(event["tutor_class"], event['username'])
+        print("update classroom response"+str(response2))
+        if (response2 is not 200):
+            rollback(s3=True, path=path, auth0=True, client_id=client_id, connection=connection, username=event["username"], dynamo=True)
+            return "The classroom cannot be updated with the tutor infrmation. Rollback done and folder in s3 deleted. User deleted in dynamo db. Please delete manually the user in auth0 \n", response2['ResponseMetadata']
 
-    return "User created correctly on Auth0, dynamoDB, s3, and subscribed to the topic of the classroom \n"
+    return "User created correctly on Auth0, dynamoDB, s3, and subscribed to the topic of the classroom \n", 200
 
-
+def add_tutor_to_classroom(classroom, username):
+    classs = classroom.split(' ')[0]
+    level = classroom.split(' ')[1]
+    client = boto3.client('dynamodb')
+    response = client.update_item(
+        TableName=os.environ['tableClassroom'],
+        Key={
+            'Class': {
+                'S': classs
+            },
+            'Level': {
+                'S': level
+            }
+        },
+        AttributeUpdates={
+        "Tutor": {
+            "Action": "PUT",
+            "Value": {"S": username}
+        }
+    }
+        )
+    print response
+    return response['ResponseMetadata']['HTTPStatusCode']
 
 def delete_user_from_dynamo(username):
     client = boto3.client('dynamodb')
@@ -217,15 +294,12 @@ def get_arn_of_classroom(classroom):
     except KeyError:
         return False
 
-
-
 def rollback(s3, path, auth0, client_id, connection, username, dynamo=False):
     if s3:
         delete_folder_in_s3(path)
     #Pending the rollback for auth0
     if dynamo:
         delete_user_from_dynamo(username)
-
 
 def delete_folder_in_s3(path):
     client = boto3.client('s3')
@@ -237,9 +311,6 @@ def delete_folder_in_s3(path):
     Bucket=os.environ['resizedBucket'],
     Key=path
     )
-
-
-
 
 def signup_auth0(client_id, username, email, password, connection):
     headers = {
@@ -258,7 +329,6 @@ def signup_auth0(client_id, username, email, password, connection):
     print body
     response = requests.post(url_session, data=body, headers=headers)
     return response
-
 
 def exist_user(username):
     client = boto3.client('dynamodb')
@@ -311,9 +381,6 @@ def insert_teacher(event, path):
             },
             'Role':{
                 'S': event["role"]
-            },
-            'Tutor Class':{
-                'S': tutorclass
             },
             'Postal Code':{
                 'N': event["postal_code"]
@@ -373,7 +440,7 @@ def valid_date(date):
 
     correctDate = None
     try:
-        date = date.split("/")
+        date = date.split("-")
         year = date[2]
         month = date[1]
         day = date[0]
@@ -404,25 +471,36 @@ def valid_email(email):
 def has_tutor(classs, level):
     client = boto3.client('dynamodb')
     response = client.scan(
-        TableName=os.environ['tableUsers'],
+        TableName=os.environ['tableClassroom'],
         Select='ALL_ATTRIBUTES',
         ScanFilter={
-            'Tutor Class':{
+            'Class':{
                 'AttributeValueList':[{
-                    'S': classs+ " "+ level
+                    'S': classs
+                    }
+                    ],
+                'ComparisonOperator': 'EQ'
+                },
+            'Level':{
+                'AttributeValueList':[{
+                    'S': level
                     }
                     ],
                 'ComparisonOperator': 'EQ'
                 }
-
             }
     )
-    return response["Count"] > 0
+    print("Has tutor: "+str(response))
+    print response["Count"] > 0
+    try:
+        return 'Tutor' in response['Items'][0]
+    except IndexError:
+        return False
 
 
 def valid_phone(phone):
     try:
-        correct = len(phone) > 9
+        correct = len(str(phone)) > 9
         phone = int(phone)
         return correct
     except ValueError:
@@ -465,7 +543,7 @@ def valid_postal_code(postal_code):
     if not postal_code:
         return False
     try:
-        size = (len(postal_code) > 4) & (len(postal_code) < 8)
+        size = (len(str(postal_code)) > 4) & (len(str(postal_code)) < 10)
         postal_code = int(postal_code)
         return size
     except ValueError:
@@ -507,3 +585,31 @@ def create_folder_in_bucket(role, username):
             Key=path
             )
         return response, path
+
+def upload_file_to_s3(path, file_encoded, photo_profile_name):
+    print("Uploading main imagen file to s3")
+    print('photo profile name '+photo_profile_name)
+    print(file_encoded)
+
+    s3_client = boto3.client('s3')
+    file_path = '/tmp/'+photo_profile_name
+    fh = open(file_path, "wb")
+    fh.write(file_encoded.decode('base64'))
+    fh.close()
+    print('Correctly created in ' +file_path)
+    try:
+        with open(file_path, "wb") as fh:
+            fh.write(file_encoded.decode('base64'))
+        print('Correctly saved ' +file_path)
+    except Exception:
+        print("Error decoding and creating the file")
+        raise
+    s3_path = path+photo_profile_name
+
+    try:
+        s3_client.upload_file(file_path, os.environ['originalBucket'], s3_path)
+    except Exception:
+        print("Error uploading the picture "+file_path+" to "+s3_path+" in the bucket "+os.environ['originalBucket'] +"")
+        raise
+    print('uploaded to '+str(s3_path))
+    return s3_path
