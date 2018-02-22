@@ -133,10 +133,3 @@ def handler_with_path_parameters(event, context):
                     },
             "body": json.dumps(classrooms)
             }
-
-"""
-queryStringParameters = {"role": "parent", "username": "parent2", "email":"rd.barrientos@gmail.com"}
-event = {"queryStringParameters": queryStringParameters}
-
-print handler(event=event, context=None)
-"""

@@ -75,7 +75,7 @@ custom:
 functions:
   #---------------------------AUTHENTICATION-----------------
   login:
-    handler: login_returning_profile_and_credentials.handler
+    handler: post_authentication.handler
     environment:
       #----AUTH0 URL-------
       urlSessionOauth: ${self:provider.environment.AUTH0_URL_SESSION_0AUTH}
@@ -256,18 +256,19 @@ functions:
           authorizer: aws_iam
 
   #---------------------------- Users ------------------------
-  get_myprofile:
-    # VIA API
-    handler: get_my_profile.handler
-    environment:
-      #---Dynamo Tables--
-      tableUsersLogged: ${self:provider.environment.DYNAMO_USERSLOGGED_TABLE}
-      tableUsers: ${self:provider.environment.DYNAMO_USER_TABLE}
-    events:
-      - http:
-          path: ${self:provider.environment.PATH_BASE}/profile
-          method: post
-          cors: true
+#  get_myprofile:
+#    # VIA API
+#    handler: get_my_profile.handler
+#    environment:
+#      #---Dynamo Tables--
+#      tableUsersLogged: ${self:provider.environment.DYNAMO_USERSLOGGED_TABLE}
+#      tableUsers: ${self:provider.environment.DYNAMO_USER_TABLE}
+#    events:
+#      - http:
+#          path: ${self:provider.environment.PATH_BASE}/profile
+#          method: post
+#          cors: true
+
   get_users:
     # VIA API
     handler: get_users.handler

@@ -110,38 +110,3 @@ def handler(event, context):
                     },
             "body": json.dumps(multimedias)
             }
-"""
-
-def handler_with_path_parameters(event, context):
-    username = None
-    print("Event Initial: "+str(event))
-    if 'pathParameters' in event:
-        pathParameters = event['pathParameters']
-        # Se mira si hay alguna query dentro de la URL para poder filtrar.
-    if pathParameters is not None:
-        if 'username' in pathParameters:
-            username = pathParameters['username']
-            print('Username given in path parameters: '+username)
-
-    response = get_users_from_dynamoDB(username=username)
-    print(response)
-    classrooms = parse_dynamo_response(response)
-    return {
-            "statusCode": 200,
-            "headers": {
-                    "Access-Control-Allow-Origin" : "*"
-                    },
-            "body": json.dumps(classrooms)
-            }
-
-
-queryStringParameters = {"role": "parent", "username": "parent2", "email":"rd.barrientos@gmail.com"}
-event = {"queryStringParameters": queryStringParameters}
-
-print handler(event=event, context=None)
-"""
-
-#queryStringParameters = {"event_date": "2018-02-13"}
-#event = {"queryStringParameters": queryStringParameters}
-#print '.----'
-#print handler(event=event, context=None)
