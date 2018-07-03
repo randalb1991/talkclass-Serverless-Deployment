@@ -83,7 +83,7 @@ def get_multimedias_from_dynamoDB(event_date=None, event_title=None, multimedia_
 
 
 def handler(event, context):
-    event_title, event_date, tag, format, multimedia_title, username = None, None, None, None, None,None
+    event_title, event_date, tag, format, multimedia_title, username = None, None, None, None, None, None
     print("Event Initial: "+str(event))
     if 'queryStringParameters' in event:
         query = event['queryStringParameters']

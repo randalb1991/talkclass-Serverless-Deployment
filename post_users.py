@@ -33,7 +33,7 @@ def handler(event, context):
 
     if 'birthday' in event:
         if not valid_date(event["birthday"]):
-            return return_error(400, "Birthday is not valid date. The formart must be of type dd/mm/yyyy")
+            return return_error(400, "Birthday is not valid date. The formart must be of type dd-mm-yyyy")
     else:
         return return_error(400, "Birthday field is empty")
 

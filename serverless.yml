@@ -1,7 +1,7 @@
-service: talkclass
+service: talkclass-ireland
 provider:
   name: aws
-# region: us-west-2
+  region: eu-west-1
   runtime: python2.7
   environment:
     #-----------------DynamoDB Environment--------
@@ -13,10 +13,10 @@ provider:
     #-----------------S3 Environment--------------
     BUCKET_NAME: ${self:service}-tcbucket3332
     #-----------------Auth0 Environment--------
-    AUTH0_DB_PARENT: Username-Password-Connection2
+    AUTH0_DB_PARENT: database-parents
     AUTH0_CLIENT_ID_PARENT: mMzOE026lgtsO6FzhIWjW3NvbQ0EAL8H
-    AUTH0_DB_TEACHER: Username-Password-Authentication
-    AUTH0_CLIENT_ID_TEACHER: 1Omp2yeIhGP3wOnqMNzgL5y18RUc5p80
+    AUTH0_DB_TEACHER: database-professor
+    AUTH0_CLIENT_ID_TEACHER: 7kY6mvay93rMZkpxnIipaDalHZucL2p9
     AUTH0_URL_SESSION_0AUTH: https://talkclass.auth0.com/oauth/ro
     AUTH0_URL_SESSION_DELEGATION: https://talkclass.auth0.com/delegation
     AUTH0_URL_SIGNUP: https://talkclass.auth0.com/dbconnections/signup
