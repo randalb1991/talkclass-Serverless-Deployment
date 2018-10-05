@@ -290,25 +290,4 @@ def exist_event(title, date):
 
     return response["Count"] > 0
 
-"""
-def valid_date(date):
-
-    correctDate = None
-    try:
-        date = date.replace('-', '/')
-        date = date.split("/")
-        year = date[2]
-        month = date[1]
-        day = date[0]
-    except IndexError:
-        return False
-    try:
-        Date = datetime.datetime(year=int(year), month=int(month), day=int(day))
-        current_day = datetime.datetime.now()
-        correctDate = Date > current_day
-    except ValueError:
-        correctDate = False
-    return correctDate
-"""
-
 
